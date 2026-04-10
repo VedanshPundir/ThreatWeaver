@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSecSim AI-Powered Penetration Test Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: white;
+            padding: 40px 20px;
+            color: #1a2a3a;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 15px;
+            font-family: monospace;
+        }
+        .content { padding: 40px; }
+        .section {
+            margin-bottom: 40px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 30px;
+        }
+        .section h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 2em; font-weight: bold; }
+        .finding-card {
+            background: #f7fafc;
+            border-left: 4px solid;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .finding-card.critical { border-left-color: #e53e3e; }
+        .finding-card.high { border-left-color: #ed8936; }
+        .finding-card.medium { border-left-color: #ecc94b; }
+        .severity-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .severity-critical { background: #e53e3e; color: white; }
+        .severity-high { background: #ed8936; color: white; }
+        .severity-medium { background: #ecc94b; color: #1a2a3a; }
+        .recommendation {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .recommendation h4 { color: #2c5282; margin-bottom: 10px; }
+        .recommendation ul { margin-left: 20px; margin-top: 10px; }
+        .footer {
+            background: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            color: #718096;
+            font-size: 0.85em;
+        }
+        pre {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; }
+        }
+    </style>
+    
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin: 20px 0;">
+            <div>
+                <canvas id="successRateChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+                <canvas id="aptChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+                <canvas id="tacticsChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+                <canvas id="detectionChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+        <script>
+        setTimeout(() => {
+            try {
+                // Success Rate Chart
+                new Chart(document.getElementById('successRateChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: ["Successful","Failed"],
+                        datasets: [{
+                            data: [43,7],
+                            backgroundColor: ["#28a745","#dc3545"],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'Overall Success Rate' },
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+                
+                // APT Correlation Chart
+                new Chart(document.getElementById('aptChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ["Earth Lusca","Gamaredon Group","OilRig","Sandworm Team","Magic Hound"],
+                        datasets: [{
+                            label: 'Match Percentage',
+                            data: [9.1,5.7,5.3,5.1,5.1],
+                            backgroundColor: '#667eea',
+                            borderColor: '#764ba2',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'APT Group Correlation' },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: 100, title: { display: true, text: 'Match %' } }
+                        }
+                    }
+                });
+                
+                // Tactics Distribution Chart
+                new Chart(document.getElementById('tacticsChart'), {
+                    type: 'radar',
+                    data: {
+                        labels: ["unknown","discovery","persistence","attack","defense-evasion"],
+                        datasets: [{
+                            label: 'Success Rate %',
+                            data: ["100.0","50.0","100.0","100.0","0.0"],
+                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                            borderColor: '#667eea',
+                            pointBackgroundColor: '#764ba2',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'Tactics Success Rate' },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } }
+                        }
+                    }
+                });
+                
+                // Detection Rate Chart
+                new Chart(document.getElementById('detectionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ["Account Discovery","Scheduled Task/Job","Boot or Logon Autostart","Server Software Component","T1016"],
+                        datasets: [{
+                            label: 'Detection Rate %',
+                            data: [0,0,0,0,0],
+                            backgroundColor: '#ed8936',
+                            borderColor: '#c05621',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        plugins: {
+                            title: { display: true, text: 'Top Techniques - Detection Rate' },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { beginAtZero: true, max: 100, title: { display: true, text: 'Detection Rate %' } }
+                        }
+                    }
+                });
+            } catch(e) {
+                console.log('Chart error:', e);
+            }
+        }, 1000);
+        </script>
+        
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 WebSecSim Penetration Test Report</h1>
+            <p>AI-Powered Security Assessment</p>
+            <div class="badge">Report ID: WSS-1775795920501</div>
+            <div>Generated: 4/10/2026, 12:38:40 AM</div>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>📊 Executive Summary</h2>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="number">50</div><div class="label">Techniques Attempted</div></div>
+                    <div class="stat-card"><div class="number">43</div><div class="label">Successful</div></div>
+                    <div class="stat-card"><div class="number">13</div><div class="label">Critical Alerts</div></div>
+                    <div class="stat-card"><div class="number">10</div><div class="label">APT Matches</div></div>
+                </div>
+                <pre>**Executive Summary**
+
+The recent security assessment revealed a high overall risk level, with 43 out of 50 attempted attack techniques being successful. Critical alerts totaled 13, indicating significant vulnerabilities in the environment. Notably, techniques associated with system information discovery, process discovery, and account discovery were successfully executed without detection. The victim environment—an Ubuntu 22.04 LTS system—exhibits a high attack surface due to its current configurations and running services, including SSH and Apache.
+
+Key findings highlight a concerning lack of detection capabilities, as all successful techniques reported a 0% detection rate. The exploitation of discovery and persistence tactics suggests an immediate need for enhanced monitoring and defensive strategies. Recommended next steps include implementing robust intrusion detection systems, conducting a thorough review of current security policies, and instituting regular security training for personnel. Additionally, prioritizing the mitigation of identified vulnerabilities, especially those concerning credential access and system persistence, will be crucial in reinforcing the security posture of the organization.</pre>
+            </div>
+            
+            <div class="section">
+                <h2>⚠️ Key Findings</h2>
+                
+            <div class="finding-card medium">
+                <span class="severity-badge severity-medium">Medium</span>
+                <h4>Analysis Error</h4>
+                <p>```json
+[
+    {
+        "Title": "Account Discovery Success",
+        "Severity": "Critical",
+        "Description": "Successful execution of account discovery techniques with a 100% success rate, indicating a significant risk of unauthorized access to user accounts.",
+        "Evidence": {
+            "Technique": "T1087",
+            "Success Rate": "100.0%",
+            "Detection Rate": "0.0%"
+        },
+        "MITRE_Techniques": ["T1087"]
+    },
+    {
+        "Title": "Boot or Logon Autostart Persistence",
+        "Severity": "Critical",
+        "Description": "The technique for boot or logon autostart has been successfully executed with a 100% success rate, posing a risk of persistent malware execution.",
+        "Evidence": {
+            "Technique": "T1547",
+            "Success Rate": "100.0%",
+            "Detection Rate": "0.0%"
+        },
+        "MITRE_Techniques": ["T1547"]
+    },
+    {
+        "Title": "OS Credential Dumping Attempt",
+        "Severity": "High",
+        "Description": "OS credential dumping techniques were attempted with a 22.2% success rate, suggesting potential exposure of sensitive credentials.",
+        "Evidence": {
+            "Technique": "T1003",
+            "Success Rate": "22.2%",
+            "Detection Rate": "0.0%"
+        },
+        "MITRE_Techniques": ["T1003"]
+    },
+    {
+        "Title": "Unsecured Credentials Discovery",
+        "Severity": "High",
+        "Description": "Unsecured credentials were discovered with a 21.1% success rate, highlighting a vulnerability that could lead to credential theft.",
+        "Evidence": {
+            "Technique": "T1552",
+            "Success Rate": "21.1%",
+            "Detection Rate": "0.0%"
+        },
+        "MITRE_Techniques": ["T1552"]
+    },
+    {
+        "Title": "Scheduled Task/Job Persistence",
+        "Severity": "High",
+        "Description": "Successful execution of scheduled task/job techniques with a 100% success rate, indicating a risk of persistent malicious activity.",
+        "Evidence": {
+            "Technique": "T1053",
+            "Success Rate": "100.0%",
+            "Detection Rate": "0.0%"
+        },
+        "MITRE_Techniques": ["T1053"]
+    }
+]
+```</p>
+                
+                
+            </div>
+        
+            </div>
+            
+            <div class="section">
+                <h2>🎯 Risk Assessment</h2>
+                <pre>### Overall Risk Assessment
+
+**Overall Risk Rating:** High
+
+**Likelihood:** High  
+- The attack summary shows a high success rate of techniques (86% successful attempts), indicating that the environment is highly vulnerable to various attack vectors. With 43 out of 50 techniques successfully executed, this suggests that the likelihood of future successful attacks remains high.
+
+**Business Impact:** Critical  
+- Given the successful execution of numerous critical techniques such as credential dumping, account discovery, and persistence mechanisms, the potential business impact is severe. If sensitive information is compromised or critical services disrupted, this could lead to significant financial loss, reputational damage, and compliance issues.
+
+**Key Risk Factors:**
+1. **High Attack Surface:** The environment is described as having a "high" attack surface, making it more susceptible to various attack techniques.
+2. **Successful Execution of Discovery Techniques:** A significant number of successful discovery techniques (e.g., account discovery, process discovery, and system information discovery) could lead to further exploitation of the system.
+3. **Lack of Detection Capabilities:** All successful techniques reported 0% detection, indicating a lack of monitoring and response capabilities, which could allow attackers to operate undeterred.
+4. **Root Access:** The current user has root access, which can be exploited by attackers to gain complete control over the system.
+5. **Persistence Mechanisms:** Successful execution of persistence techniques allows attackers to maintain access even after initial detection and remediation efforts.
+6. **Use of Known APT Techniques:** Correlation with known APT groups indicates that the tactics employed are aligned with advanced threat actors, posing an elevated risk level.
+
+### Summary
+The combination of a high success rate for attack techniques, lack of detection capabilities, and critical business impact leads to a high overall risk assessment. Immediate action is recommended to implement stronger security measures, detection capabilities, and incident response strategies to mitigate these risks.</pre>
+            </div>
+            
+            <div class="section">
+                <h2>📈 Performance Metrics</h2>
+                
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin: 20px 0;">
+            <div>
+                <canvas id="successRateChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+                <canvas id="aptChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+                <canvas id="tacticsChart" style="max-height: 300px;"></canvas>
+            </div>
+            <div>
+                <canvas id="detectionChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+        <script>
+        setTimeout(() => {
+            try {
+                // Success Rate Chart
+                new Chart(document.getElementById('successRateChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: ["Successful","Failed"],
+                        datasets: [{
+                            data: [43,7],
+                            backgroundColor: ["#28a745","#dc3545"],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'Overall Success Rate' },
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+                
+                // APT Correlation Chart
+                new Chart(document.getElementById('aptChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ["Earth Lusca","Gamaredon Group","OilRig","Sandworm Team","Magic Hound"],
+                        datasets: [{
+                            label: 'Match Percentage',
+                            data: [9.1,5.7,5.3,5.1,5.1],
+                            backgroundColor: '#667eea',
+                            borderColor: '#764ba2',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'APT Group Correlation' },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, max: 100, title: { display: true, text: 'Match %' } }
+                        }
+                    }
+                });
+                
+                // Tactics Distribution Chart
+                new Chart(document.getElementById('tacticsChart'), {
+                    type: 'radar',
+                    data: {
+                        labels: ["unknown","discovery","persistence","attack","defense-evasion"],
+                        datasets: [{
+                            label: 'Success Rate %',
+                            data: ["100.0","50.0","100.0","100.0","0.0"],
+                            backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                            borderColor: '#667eea',
+                            pointBackgroundColor: '#764ba2',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: { display: true, text: 'Tactics Success Rate' },
+                            legend: { position: 'bottom' }
+                        },
+                        scales: {
+                            r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } }
+                        }
+                    }
+                });
+                
+                // Detection Rate Chart
+                new Chart(document.getElementById('detectionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ["Account Discovery","Scheduled Task/Job","Boot or Logon Autostart","Server Software Component","T1016"],
+                        datasets: [{
+                            label: 'Detection Rate %',
+                            data: [0,0,0,0,0],
+                            backgroundColor: '#ed8936',
+                            borderColor: '#c05621',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        plugins: {
+                            title: { display: true, text: 'Top Techniques - Detection Rate' },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { beginAtZero: true, max: 100, title: { display: true, text: 'Detection Rate %' } }
+                        }
+                    }
+                });
+            } catch(e) {
+                console.log('Chart error:', e);
+            }
+        }, 1000);
+        </script>
+        
+            </div>
+            
+            <div class="section">
+                <h2>🔧 Technical Analysis</h2>
+                <pre>### Technical Analysis of Attack Summary
+
+#### Attack Chain Analysis
+
+1. **Initial Access**: 
+   - The attack methodology lacks a clear entry point or initial access stage in the provided data, suggesting that techniques may have been utilized post-compromise.
+
+2. **Execution**:
+   - Techniques such as **T1053 (Scheduled Task/Job)** and **T1560 (Archive Collected Data)** indicate that once initial access was gained, the attacker executed tasks to collect and exfiltrate data.
+
+3. **Persistence**:
+   - The use of **T1547 (Boot or Logon Autostart)** demonstrates the attacker's intent to maintain access over time, leveraging the system's boot process.
+
+4. **Discovery**:
+   - A substantial portion of successful techniques focuses on discovery, including **T1082 (System Information Discovery)** and **T1057 (Process Discovery)**. This behavior suggests that the attacker was gathering intelligence about the environment.
+
+5. **Credential Access**:
+   - Techniques like **T1003 (OS Credential Dumping)** and **T1552 (Unsecured Credentials)** were attempted, but with lower success rates, indicating some barriers in accessing sensitive credentials.
+
+6. **Exfiltration**:
+   - Successful use of **T1560.001 (Archive via Utility)** and **T1025 (Data from Removable Media)** indicates that the attacker collected and possibly exfiltrated data.
+
+7. **Defense Evasion**:
+   - Although there were attempts to evade defenses (e.g., **T1562 (Impair Defenses)**), they were largely unsuccessful, as indicated by a 0% detection rate across the board.
+
+#### Most Effective Techniques
+
+- **Account Discovery (T1087)**: 100% success, indicating a strong ability to enumerate user accounts.
+- **Boot or Logon Autostart (T1547)**: 100% success, demonstrating effective persistence.
+- **Scheduled Task/Job (T1053)**: 100% success signifies the ability to execute tasks at intervals.
+- **Network Service Scanning (T1046)**: 94.5% success, indicating a thorough mapping of available services.
+
+#### Defensive Gaps
+
+1. **Detection Failures**: 
+   - All techniques attempted have a 0% detection rate, indicating a significant gap in monitoring capabilities for both host and network-based defenses.
+
+2. **Lack of Endpoint Detection and Response (EDR)**:
+   - The absence of alerts for successful techniques suggests that EDR solutions may not be in place or are improperly configured.
+
+3. **User Account Monitoring**:
+   - With 100% success in account discovery, there is a need for better user account monitoring and alerting for unusual or unauthorized access patterns.
+
+4. **Task Scheduling Awareness**:
+   - The successful use of scheduled tasks highlights a lack of monitoring around task creation and alteration.
+
+5. **Unsecured Credential Handling**:
+   - As T1552 has been flagged, the handling of credentials must be improved, especially in environments lacking GUI/keyring management.
+
+6. **Network Security**: 
+   - Given the high attack surface and successful service discovery techniques, there is a critical need for better network segmentation and monitoring of service access.
+
+#### Detection Evasion Success
+
+- The attacker successfully utilized various techniques without triggering alerts, underscoring a failure in detection mechanisms.
+- The 0% detection rate indicates that the security measures in place are either non-existent or ineffective against the tactics employed.
+- The lack of detection also suggests the potential use of stealthy techniques that blend in with normal operations (e.g., using scheduled tasks).
+
+### Recommendations
+
+1. **Strengthen Monitoring Capabilities**:
+   - Implement comprehensive monitoring solutions (EDR, SIEM) to detect suspicious activities, especially focusing on user account changes, scheduled tasks, and service modifications.
+
+2. **Enhance Network Security**:
+   - Employ network segmentation, stricter firewall rules, and continuous monitoring of services to limit unauthorized access.
+
+3. **User Training and Awareness**:
+   - Educate users about the importance of securing credentials and recognizing unusual activities.
+
+4. **Configuration Management**:
+   - Regularly audit configurations for services and user accounts to ensure compliance with security policies.
+
+5. **Incident Response Plan**:
+   - Develop and routinely update an incident response plan to ensure rapid containment and remediation of potential breaches.
+
+By addressing these gaps and implementing recommended practices, the organization can significantly reduce its attack surface and improve its overall security posture.</pre>
+            </div>
+            
+            
+            <div class="section">
+                <h2>🕵️ Threat Actor Attribution</h2>
+                <pre>Based on the provided APT group matches, here is the analysis of the most likely threat actors, their known TTPs (Tactics, Techniques, and Procedures), and suggested threat hunting queries.
+
+### 1. Earth Lusca (G1006)
+- **Most Likely Threat Actor**: Earth Lusca (suspected China-based cyber espionage group).
+- **Known TTPs**:
+  - T1007: Application Layer Protocol
+  - T1027: Obfuscated Files or Information
+  - T1047: Windows Management Instrumentation
+  - T1053.005: Scheduled Task/Job: Scheduled Task
+- **Threat Hunting Queries**:
+  - Search for scheduled tasks created in unusual or suspicious locations.
+  - Look for obfuscated scripts or executables in the application layer traffic.
+  - Monitor for unusual WMI queries or execution patterns.
+
+### 2. Gamaredon Group (G0047)
+- **Most Likely Threat Actor**: Gamaredon Group (suspected Russian cyber espionage group).
+- **Known TTPs**:
+  - T1027: Obfuscated Files or Information
+  - T1047: Windows Management Instrumentation
+  - T1053.005: Scheduled Task/Job: Scheduled Task
+  - T1082: System Information Discovery
+- **Threat Hunting Queries**:
+  - Identify instances of obfuscated files within the file system.
+  - Analyze WMI usage for any unauthorized queries or commands.
+  - Monitor system information requests from various endpoints.
+
+### 3. OilRig (G0049)
+- **Most Likely Threat Actor**: OilRig (suspected Iranian threat group).
+- **Known TTPs**:
+  - T1007: Application Layer Protocol
+  - T1047: Windows Management Instrumentation
+  - T1053.005: Scheduled Task/Job: Scheduled Task
+  - T1082: System Information Discovery
+- **Threat Hunting Queries**:
+  - Investigate application layer traffic for anomalies or unauthorized access.
+  - Check for any scheduled tasks with unusual names or execution times.
+  - Gather system information requests and analyze for signs of unauthorized access.
+
+### 4. Sandworm Team (G0034)
+- **Most Likely Threat Actor**: Sandworm Team (tied to Russian GRU).
+- **Known TTPs**:
+  - T1027: Obfuscated Files or Information
+  - T1047: Windows Management Instrumentation
+  - T1053.005: Scheduled Task/Job: Scheduled Task
+  - T1082: System Information Discovery
+- **Threat Hunting Queries**:
+  - Look for obfuscated or malicious files within critical infrastructure systems.
+  - Monitor WMI for suspicious command executions or queries.
+  - Analyze logs for any unauthorized access attempts to system information.
+
+### 5. Magic Hound (G0059)
+- **Most Likely Threat Actor**: Magic Hound (Iranian-sponsored group).
+- **Known TTPs**:
+  - T1047: Windows Management Instrumentation
+  - T1053.005: Scheduled Task/Job: Scheduled Task
+  - T1082: System Information Discovery
+  - T1573: Encrypted Channel
+- **Threat Hunting Queries**:
+  - Review scheduled tasks for indicators of compromise or unusual patterns.
+  - Monitor WMI usage for any unauthorized command executions.
+  - Analyze encrypted channels for suspicious activity or communications.
+
+### Summary
+All five groups exhibit overlapping techniques, particularly with the use of WMI and scheduled tasks, suggesting a common approach to persistence and information gathering. The focus for threat hunting should be on identifying anomalies in these areas across the network, especially in enterprise environments that might be targeted by cyber espionage actors.</pre>
+            </div>
+            
+            
+            <div class="section">
+                <h2>💡 Recommendations</h2>
+                
+            <div class="recommendation">
+                <h4>Medium Priority: Recommendations</h4>
+                <p><strong>Action Steps:</strong></p>
+                <ul>
+                    <li>```json
+[
+    {
+        "Priority": 1,
+        "Title": "Implement Detection Mechanisms for Successful Techniques",
+        "ActionSteps": [
+            "Deploy endpoint detection and response (EDR) solutions that focus on the successful techniques with 0.0% detection rates.",
+            "Focus on improving detection capabilities for techniques such as T1087 (Account Discovery), T1053 (Scheduled Task/Job), and T1547 (Boot or Logon Autostart).",
+            "Conduct regular assessments and updates to detection rules based on new threat intelligence."
+        ],
+        "ExpectedImpact": "Increase the detection rate for critical techniques, reducing the potential for successful attacks in the future."
+    },
+    {
+        "Priority": 2,
+        "Title": "Strengthen Credential Security",
+        "ActionSteps": [
+            "Audit existing credentials and their storage methods to ensure they are secured.",
+            "Implement password policies that include strong, complex passwords and regular changes.",
+            "Utilize tools to monitor and respond to unauthorized access attempts."
+        ],
+        "ExpectedImpact": "Reduce the success rate of credential dumping techniques and improve overall security posture."
+    },
+    {
+        "Priority": 3,
+        "Title": "Enhance User Awareness Training",
+        "ActionSteps": [
+            "Conduct training sessions focused on recognizing phishing attempts and social engineering tactics.",
+            "Provide ongoing awareness communications regarding the importance of security best practices.",
+            "Simulate attack scenarios to test employee readiness."
+        ],
+        "ExpectedImpact": "Decrease the likelihood of successful attacks leveraging user credentials or enabling unauthorized access."
+    },
+    {
+        "Priority": 4,
+        "Title": "Evaluate and Harden System Configurations",
+        "ActionSteps": [
+            "Review and apply security hardening benchmarks for Ubuntu 22.04 LTS systems.",
+            "Disable or remove unnecessary services, especially those that could serve as attack vectors.",
+            "Regularly patch and update the operating system and installed services."
+        ],
+        "ExpectedImpact": "Lower the attack surface and minimize the potential for exploitation of known vulnerabilities."
+    },
+    {
+        "Priority": 5,
+        "Title": "Monitor and Respond to Critical Alerts",
+        "ActionSteps": [
+            "Establish a Security Operations Center (SOC) to monitor alerts continuously.",
+            "Create incident response plans that include specific actions for the top techniques identified in the successful attacks.",
+            "Utilize threat intelligence feeds to stay updated on emerging threats that could exploit similar vulnerabilities."
+        ],
+        "ExpectedImpact": "Improve response times to critical alerts and reduce the time attackers have to exploit vulnerabilities."
+    },
+    {
+        "Priority": 6,
+        "Title": "Investigate and Remediate Failed Techniques",
+        "ActionSteps": [
+            "Analyze the reasons behind the failures of techniques such as T1497.001 (System Checks) and T1010 (Application Window Discovery).",
+            "Implement measures to improve system resilience against these techniques if they are deemed necessary to mitigate future risks.",
+            "Regularly review the effectiveness of remediation efforts."
+        ],
+        "ExpectedImpact": "Increase the overall effectiveness of the security infrastructure by understanding and addressing the reasons for failure."
+    }
+]
+```</li>
+                </ul>
+                <p><strong>Expected Impact:</strong> </p>
+            </div>
+        
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>This report was generated automatically using GPT-4o-mini AI analysis based on actual attack data from WebSecSim C2.</p>
+            <p>Report generated: 2026-04-10T04:38:40.705Z</p>
+        </div>
+    </div>
+</body>
+</html>

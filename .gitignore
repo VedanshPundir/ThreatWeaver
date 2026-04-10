@@ -20,3 +20,4 @@ npm-debug.log
 # OS
 .DS_Store
 *.swp
+c2-operator/node_modules/
