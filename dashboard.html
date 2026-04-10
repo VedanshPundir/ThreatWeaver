@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebSecSim — OpenClaw C2 Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#020608;--bg2:#060d10;--bg3:#0a1518;--panel:#0d1c21;
+  --border:#0e3040;--border2:#1a4a5a;
+  --accent:#00d4ff;--accent2:#00ff88;--danger:#ff3d5a;
+  --warn:#ffaa00;--purple:#a855f7;--orange:#ff6b35;
+  --text:#c8e8f0;--text2:#6a9aaa;--text3:#3a6070
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;overflow-x:hidden;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:9999}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:60px;background:linear-gradient(180deg,rgba(0,212,255,0.06) 0%,transparent 100%);border-bottom:1px solid var(--border2)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-hex{width:32px;height:32px;background:var(--accent);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--bg);animation:hexPulse 3s ease-in-out infinite}
+@keyframes hexPulse{0%,100%{box-shadow:0 0 8px var(--accent)}50%{box-shadow:0 0 24px var(--accent),0 0 48px rgba(0,212,255,0.25)}}
+.logo-text{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;letter-spacing:3px;color:var(--accent);text-shadow:0 0 16px var(--accent)}
+.logo-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1.5px;margin-top:1px}
+.hdr-pills{display:flex;align-items:center;gap:8px}
+.pill{display:flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--border2);border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px}
+.pill-dot{width:6px;height:6px;border-radius:50%;animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.pill-green{background:rgba(0,255,136,0.05);color:var(--accent2);border-color:rgba(0,255,136,0.25)}.pill-green .pill-dot{background:var(--accent2)}
+.pill-blue{background:rgba(0,212,255,0.05);color:var(--accent);border-color:var(--border2)}.pill-blue .pill-dot{background:var(--accent)}
+.pill-purple{background:rgba(168,85,247,0.05);color:var(--purple);border-color:rgba(168,85,247,0.25)}.pill-purple .pill-dot{background:var(--purple)}
+.pill-orange{background:rgba(255,107,53,0.05);color:var(--orange);border-color:rgba(255,107,53,0.25)}.pill-orange .pill-dot{background:var(--orange)}
+.pill-red{background:rgba(255,61,90,0.05);color:var(--danger);border-color:rgba(255,61,90,0.25)}.pill-red .pill-dot{background:var(--danger)}
+.clock{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text2);letter-spacing:2px;padding:0 8px}
+.hdr-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border2);border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.btn-refresh{background:rgba(0,212,255,0.07);color:var(--accent);border-color:var(--border)}.btn-refresh:hover{background:rgba(0,212,255,0.18);border-color:var(--accent)}
+.btn-pdf{background:rgba(168,85,247,0.08);color:var(--purple);border-color:rgba(168,85,247,0.3)}.btn-pdf:hover{background:rgba(168,85,247,0.2);border-color:var(--purple)}
+.btn-reset{background:rgba(255,61,90,0.08);color:var(--danger);border-color:rgba(255,61,90,0.3)}.btn-reset:hover{background:rgba(255,61,90,0.2);border-color:var(--danger)}
+.btn-cfg{background:rgba(0,212,255,0.05);color:var(--text2);border-color:var(--border)}.btn-cfg:hover{color:var(--accent);border-color:var(--accent)}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── LAYOUT ── */
+.main{position:relative;z-index:1;display:grid;grid-template-columns:220px 1fr 280px;height:calc(100vh - 60px)}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding-bottom:16px}
+.sb-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--text3);text-transform:uppercase;padding:14px 14px 5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-left:2px solid transparent;transition:all 0.2s;color:var(--text2);font-weight:500;font-size:13px}
+.nav-item:hover,.nav-item.active{background:rgba(0,212,255,0.06);border-left-color:var(--accent);color:var(--accent)}
+.nav-badge{margin-left:auto;font-size:9px;padding:2px 6px;border-radius:10px;font-family:'Share Tech Mono',monospace;animation:badgePulse 2s ease-in-out infinite}
+.nb-red{background:var(--danger);color:#fff}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 4px var(--danger)}50%{box-shadow:0 0 10px var(--danger)}}
+.nb-green{background:var(--accent2);animation:none;color:var(--bg)}
+.nb-purple{background:var(--purple);animation:none;color:#fff}
+.nb-orange{background:var(--orange);animation:none;color:#fff}
+.sb-card{margin:5px 10px;padding:10px;background:var(--panel);border:1px solid var(--border2);border-radius:3px}
+.sb-card-title{font-family:'Share Tech Mono',monospace;font-size:10px;margin-bottom:5px}
+.sb-row{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:2px}
+.sb-row span:last-child{font-family:'Share Tech Mono',monospace;color:var(--accent)}
+.sb-actions{padding:0 10px;display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.sb-action-btn{padding:8px 10px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all 0.2s;text-align:left;border:1px solid}
+.sba-pdf{background:rgba(168,85,247,0.08);color:var(--purple);border-color:rgba(168,85,247,0.25)}.sba-pdf:hover{background:rgba(168,85,247,0.18)}
+.sba-nav{background:rgba(0,212,255,0.06);color:var(--accent);border-color:var(--border)}.sba-nav:hover{background:rgba(0,212,255,0.14)}
+.sba-reset{background:rgba(255,61,90,0.06);color:var(--danger);border-color:rgba(255,61,90,0.2)}.sba-reset:hover{background:rgba(255,61,90,0.16)}
+.sba-tg{background:rgba(0,212,255,0.06);color:#29b6f6;border-color:rgba(41,182,246,0.25)}.sba-tg:hover{background:rgba(41,182,246,0.14)}
+
+/* ── CONTENT ── */
+.content{overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+
+/* ── RIGHT PANEL ── */
+.rp{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.rp-tabs{display:flex;border-bottom:1px solid var(--border)}
+.rp-tab{flex:1;padding:9px 4px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;text-transform:uppercase}
+.rp-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,212,255,0.04)}
+
+/* ── PANELS ── */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:3px;overflow:hidden;position:relative}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.3}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.18)}
+.ph-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;font-weight:700}
+.ph-badge{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3)}
+.ph-live{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--accent2);display:flex;align-items:center;gap:5px}
+.ph-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent2);animation:blink 1.5s ease-in-out infinite;flex-shrink:0}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.sc{background:var(--panel);border:1px solid var(--border);padding:11px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.3s}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent);transform:scaleX(0);transition:transform 0.3s;transform-origin:left}
+.sc:hover{border-color:var(--accent)}.sc:hover::after{transform:scaleX(1)}
+.sc.red{border-color:rgba(255,61,90,0.25)}.sc.red::after{background:var(--danger)}
+.sc.green{border-color:rgba(0,255,136,0.25)}.sc.green::after{background:var(--accent2)}
+.sc.purple{border-color:rgba(168,85,247,0.25)}.sc.purple::after{background:var(--purple)}
+.sc.warn{border-color:rgba(255,170,0,0.25)}.sc.warn::after{background:var(--warn)}
+.sc.orange{border-color:rgba(255,107,53,0.25)}.sc.orange::after{background:var(--orange)}
+.sc-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;margin-bottom:5px}
+.sc-val{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--accent);line-height:1;margin-bottom:2px;transition:all 0.3s}
+.sc.red .sc-val{color:var(--danger)}.sc.green .sc-val{color:var(--accent2)}.sc.purple .sc-val{color:var(--purple)}.sc.warn .sc-val{color:var(--warn)}.sc.orange .sc-val{color:var(--orange)}
+.sc-sub{font-size:10px;color:var(--text2);font-weight:500}
+
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* ── KILL CHAIN ── */
+.kc{display:flex;align-items:center;padding:12px 16px;overflow-x:auto}
+.kc-s{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:68px;position:relative}
+.kc-s:not(:last-child)::after{content:'';position:absolute;right:-14px;top:15px;width:28px;height:1px;background:linear-gradient(90deg,var(--border2),var(--accent))}
+.kc-ic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid var(--border2);background:var(--bg3);transition:all 0.3s;position:relative;z-index:1}
+.kc-s.done .kc-ic{border-color:var(--accent);background:rgba(0,212,255,0.1)}
+.kc-s.active .kc-ic{border-color:var(--accent2);background:rgba(0,255,136,0.1);animation:kcPulse 2s ease-in-out infinite}
+@keyframes kcPulse{0%,100%{box-shadow:0 0 8px rgba(0,255,136,0.3)}50%{box-shadow:0 0 20px rgba(0,255,136,0.6)}}
+.kc-lb{font-size:8px;color:var(--text3);font-family:'Share Tech Mono',monospace;text-align:center;text-transform:uppercase}
+.kc-s.done .kc-lb{color:var(--accent)}.kc-s.active .kc-lb{color:var(--accent2)}
+
+/* ── OPENCLAW PANEL ── */
+.oc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px}
+.oc-card{padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;position:relative;overflow:hidden;transition:all 0.2s;cursor:default}
+.oc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px}
+.oc-card.tg::before{background:#29b6f6}
+.oc-card.ai::before{background:var(--purple)}
+.oc-card.auto::before{background:var(--accent2)}
+.oc-card.skill::before{background:var(--orange)}
+.oc-card-icon{font-size:20px;margin-bottom:6px}
+.oc-card-title{font-family:'Share Tech Mono',monospace;font-size:10px;margin-bottom:4px}
+.oc-card.tg .oc-card-title{color:#29b6f6}
+.oc-card.ai .oc-card-title{color:var(--purple)}
+.oc-card.auto .oc-card-title{color:var(--accent2)}
+.oc-card.skill .oc-card-title{color:var(--orange)}
+.oc-card-stat{font-family:'Orbitron',monospace;font-size:18px;font-weight:900;margin-bottom:2px}
+.oc-card.tg .oc-card-stat{color:#29b6f6}
+.oc-card.ai .oc-card-stat{color:var(--purple)}
+.oc-card.auto .oc-card-stat{color:var(--accent2)}
+.oc-card.skill .oc-card-stat{color:var(--orange)}
+.oc-card-sub{font-size:10px;color:var(--text2)}
+
+/* ── AUTONOMOUS ENGINE ── */
+.auto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+.auto-btn{padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;cursor:pointer;transition:all 0.2s;text-align:left}
+.auto-btn:hover{border-color:var(--accent2);background:rgba(0,255,136,0.05)}
+.auto-btn-icon{font-size:18px;margin-bottom:5px}
+.auto-btn-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent2);margin-bottom:3px}
+.auto-btn-sub{font-size:10px;color:var(--text2)}
+.auto-output{margin:0 12px 12px;padding:10px;background:var(--bg3);border:1px solid rgba(0,255,136,0.15);border-left:2px solid var(--accent2);border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);line-height:1.7;min-height:100px;max-height:220px;overflow-y:auto;display:none}
+
+/* ── TECHNIQUES GRID ── */
+.tech-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:12px}
+.tc{padding:7px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;cursor:pointer;transition:all 0.2s}
+.tc:hover{border-color:var(--accent);background:rgba(0,212,255,0.07);transform:translateY(-1px)}
+.tc.executed{border-color:rgba(0,255,136,0.35);background:rgba(0,255,136,0.05)}
+.tc.queued{border-color:rgba(255,170,0,0.7);animation:qPulse 1s ease-in-out infinite}
+@keyframes qPulse{0%,100%{border-color:rgba(255,170,0,0.4)}50%{border-color:rgba(255,170,0,1)}}
+.tc-id{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);margin-bottom:2px}
+.tc.executed .tc-id{color:var(--accent2)}.tc.queued .tc-id{color:var(--warn)}
+.tc-name{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tc-sub{font-size:9px;color:var(--text3);margin-top:2px;font-family:'Share Tech Mono',monospace}
+
+/* ── APT ── */
+.apt-list{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.apt-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;position:relative;overflow:hidden;transition:all 0.2s}
+.apt-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--danger)}
+.apt-row:nth-child(2)::before{background:var(--warn)}
+.apt-row:nth-child(3)::before{background:var(--accent)}
+.apt-row:nth-child(4)::before{background:var(--purple)}
+.apt-row:hover{border-color:var(--border2);background:rgba(0,212,255,0.03)}
+.apt-rank{font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:var(--text3);width:20px;text-align:center;flex-shrink:0}
+.apt-info{flex:1;min-width:0}
+.apt-name{font-weight:600;font-size:12px;color:var(--text);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apt-alias{font-size:9px;color:var(--text3);font-family:'Share Tech Mono',monospace}
+.apt-matched-t{font-size:9px;color:var(--accent2);font-family:'Share Tech Mono',monospace;margin-top:2px}
+.apt-bar-wrap{margin-top:3px;height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.apt-bar{height:100%;border-radius:2px;transition:width 0.8s ease}
+.apt-score{text-align:right;flex-shrink:0}
+.apt-pct{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--danger)}
+.apt-row:nth-child(2) .apt-pct{color:var(--warn)}.apt-row:nth-child(3) .apt-pct{color:var(--accent)}.apt-row:nth-child(4) .apt-pct{color:var(--purple)}
+.apt-ov{font-size:9px;color:var(--text3);font-family:'Share Tech Mono',monospace}
+
+/* ── LOGS ── */
+.logs-c{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:3px}
+.le{display:flex;gap:7px;padding:5px 7px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.5;border-left:2px solid transparent;animation:logIn 0.3s ease}
+@keyframes logIn{from{opacity:0;transform:translateX(6px)}to{opacity:1;transform:translateX(0)}}
+.le.critical{background:rgba(255,61,90,0.07);border-left-color:var(--danger);color:#ff8fa0}
+.le.alert{background:rgba(255,170,0,0.07);border-left-color:var(--warn);color:#ffc44d}
+.le.warn{border-left-color:rgba(255,170,0,0.25);color:var(--text2)}
+.le.info{color:var(--text3)}
+.le-time{color:var(--text3);flex-shrink:0}
+.le-lvl{flex-shrink:0;width:48px;text-transform:uppercase;font-weight:700}
+.le.critical .le-lvl{color:var(--danger)}.le.alert .le-lvl{color:var(--warn)}.le.warn .le-lvl{color:var(--warn);opacity:0.7}
+.le-msg{flex:1}
+
+/* ── CHART ── */
+.chart-area{padding:12px;height:100px;display:flex;align-items:flex-end;gap:4px}
+.chart-bar{flex:1;border-radius:2px 2px 0 0;transition:height 0.8s ease;min-height:4px;cursor:pointer}
+.chart-labels{display:flex;padding:3px 12px 10px;gap:4px}
+.chart-label{flex:1;font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── CONSOLE ── */
+.console-area{padding:8px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:6px}
+.console-prompt{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--accent);padding:7px 2px;flex-shrink:0}
+.console-input{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:10px;padding:7px 9px;outline:none;border-radius:2px;transition:border-color 0.2s}
+.console-input:focus{border-color:var(--accent)}
+.console-btn{background:rgba(0,212,255,0.08);border:1px solid var(--border2);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:10px;padding:7px 12px;cursor:pointer;border-radius:2px;transition:all 0.2s}
+.console-btn:hover{background:rgba(0,212,255,0.18);border-color:var(--accent)}
+
+/* ── TOOLTIP ── */
+.tooltip{position:fixed;background:var(--panel);border:1px solid var(--border2);padding:8px 12px;border-radius:3px;font-size:11px;pointer-events:none;z-index:10000;display:none;max-width:220px;box-shadow:0 8px 28px rgba(0,0,0,0.6)}
+.tooltip.visible{display:block}
+.tt-title{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:10px;margin-bottom:3px}
+.tt-body{color:var(--text2);line-height:1.5;font-size:10px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* ── ANIMATIONS ── */
+.slide-in{animation:sIn 0.5s ease forwards;opacity:0;transform:translateY(8px)}
+@keyframes sIn{to{opacity:1;transform:translateY(0)}}
+.d1{animation-delay:0.08s}.d2{animation-delay:0.16s}.d3{animation-delay:0.24s}.d4{animation-delay:0.32s}
+.pulse{animation:pul 0.5s ease}
+@keyframes pul{0%{background:rgba(0,255,136,0.18)}100%{background:transparent}}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:50000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.show{display:flex}
+.modal-box{background:var(--panel);border-radius:4px;padding:24px;box-shadow:0 0 40px rgba(0,0,0,0.6)}
+.modal-danger{border:1px solid var(--danger);width:380px}
+.modal-cfg{border:1px solid var(--accent);width:420px}
+.modal-pdf{border:1px solid rgba(168,85,247,0.5);width:400px}
+.modal-title{font-family:'Orbitron',monospace;font-size:13px;letter-spacing:2px;margin-bottom:16px}
+.modal-danger .modal-title{color:var(--danger)}
+.modal-cfg .modal-title{color:var(--accent)}
+.modal-pdf .modal-title{color:var(--purple)}
+.modal-body{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:18px}
+.modal-btns{display:flex;gap:10px;justify-content:center}
+.mbtn{padding:9px 22px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:11px;cursor:pointer;letter-spacing:1px;border:1px solid;transition:all 0.2s}
+.mbtn-cancel{background:transparent;color:var(--text2);border-color:var(--border2)}.mbtn-cancel:hover{border-color:var(--text2)}
+.mbtn-danger{background:rgba(255,61,90,0.12);color:var(--danger);border-color:var(--danger)}.mbtn-danger:hover{background:rgba(255,61,90,0.28)}
+.cfg-row{margin-bottom:12px}
+.cfg-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.cfg-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:11px;padding:8px 10px;outline:none;border-radius:2px;transition:border-color 0.2s}
+.cfg-input:focus{border-color:var(--accent)}
+.cfg-save{width:100%;padding:10px;background:rgba(0,212,255,0.1);border:1px solid var(--accent);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;cursor:pointer;border-radius:2px;transition:all 0.2s;margin-top:4px}
+.cfg-save:hover{background:rgba(0,212,255,0.2)}
+.pdf-opt{display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;margin-bottom:5px;cursor:pointer;transition:all 0.2s}
+.pdf-opt:hover{border-color:var(--purple)}.pdf-opt input{accent-color:var(--purple)}
+.pdf-opt-txt{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--text2)}
+.pdf-gen{width:100%;padding:11px;background:rgba(168,85,247,0.12);border:1px solid var(--purple);color:var(--purple);font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;cursor:pointer;border-radius:2px;transition:all 0.2s;margin-top:12px}
+.pdf-gen:hover{background:rgba(168,85,247,0.26)}
+.pdf-prog{display:none;margin-top:10px}
+.pdf-prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.pdf-prog-fill{height:100%;background:var(--purple);border-radius:2px;width:0%;transition:width 0.3s}
+.pdf-prog-txt{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--purple);text-align:center}
+
+/* ── EMPTY STATE ── */
+.empty{padding:24px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);line-height:2}
+.empty-icon{font-size:26px;margin-bottom:8px}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;gap:9px;padding:18px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3)}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+
+/* ── CONN BANNER ── */
+.banner{display:none;position:fixed;top:60px;left:0;right:0;z-index:9998;padding:7px 20px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;text-align:center}
+.banner.err{display:block;background:rgba(255,61,90,0.12);border-bottom:1px solid var(--danger);color:var(--danger)}
+.banner.ok{display:block;background:rgba(0,255,136,0.08);border-bottom:1px solid var(--accent2);color:var(--accent2)}
+
+/* ── TELEGRAM COMMANDS ── */
+.tg-cmds{padding:12px;display:flex;flex-direction:column;gap:6px}
+.tg-cmd{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;cursor:pointer;transition:all 0.2s}
+.tg-cmd:hover{border-color:#29b6f6;background:rgba(41,182,246,0.05)}
+.tg-cmd-code{font-family:'Share Tech Mono',monospace;font-size:10px;color:#29b6f6;flex-shrink:0;min-width:180px}
+.tg-cmd-desc{font-size:11px;color:var(--text2)}
+.tg-copy{margin-left:auto;font-size:9px;color:var(--text3);cursor:pointer;flex-shrink:0;padding:2px 6px;border:1px solid var(--border);border-radius:2px;font-family:'Share Tech Mono',monospace;transition:all 0.2s}
+.tg-copy:hover{border-color:#29b6f6;color:#29b6f6}
+
+/* ── NAVIGATOR ── */
+.nav-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.nav-chip{padding:3px 5px;background:var(--bg3);border:1px solid var(--border);border-radius:1px}
+.nav-chip.exec{background:rgba(0,255,136,0.1);border-color:rgba(0,255,136,0.3)}
+.nav-chip-id{font-family:'Share Tech Mono',monospace;font-size:8px}
+.nav-chip.exec .nav-chip-id{color:var(--accent2)}.nav-chip:not(.exec) .nav-chip-id{color:var(--text3)}
+
+/* ── LEARNED PANEL ── */
+.learned-list{padding:10px 12px;display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto}
+.learned-row{padding:7px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;border-left:2px solid var(--accent2)}
+.lr-id{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent2);margin-bottom:2px}
+.lr-cmd{font-size:10px;color:var(--text2);font-family:'Share Tech Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lr-meta{font-size:9px;color:var(--text3);margin-top:2px;display:flex;gap:10px}
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"><div class="tt-title" id="tt"></div><div class="tt-body" id="tb"></div></div>
+<div class="banner" id="banner"></div>
+
+<!-- RESET MODAL -->
+<div class="overlay" id="modal-reset">
+  <div class="modal-box modal-danger">
+    <div class="modal-title">⚠ CONFIRM SESSION RESET</div>
+    <div class="modal-body">Calls <span style="color:var(--accent)">/api/system/reset</span> on the live C2 backend.<br>All executed techniques, tasks, victim outputs and session data will be permanently cleared.</div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('reset')">CANCEL</button>
+      <button class="mbtn mbtn-danger" onclick="confirmReset()">RESET SESSION</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="overlay" id="modal-cfg">
+  <div class="modal-box modal-cfg">
+    <div class="modal-title">⚙ API Configuration</div>
+    <div class="cfg-row"><div class="cfg-label">C2 Backend URL</div><input class="cfg-input" id="cfg-url" placeholder="http://localhost:8000"></div>
+    <div class="cfg-row"><div class="cfg-label">Admin Username</div><input class="cfg-input" id="cfg-user" placeholder="admin"></div>
+    <div class="cfg-row"><div class="cfg-label">Admin Password</div><input class="cfg-input" id="cfg-pass" type="password" placeholder="your_c2_password"></div>
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);padding:8px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;margin-bottom:4px">JWT token auto-fetched from <span style="color:var(--accent)">/token</span> and cached in memory</div>
+    <button class="cfg-save" onclick="saveConfig()">SAVE & CONNECT</button>
+  </div>
+</div>
+
+<!-- PDF MODAL -->
+<div class="overlay" id="modal-pdf">
+  <div class="modal-box modal-pdf">
+    <div class="modal-title">📄 Generate PDF Report</div>
+    <div style="margin-bottom:12px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:8px">INCLUDE SECTIONS</div>
+      <label class="pdf-opt"><input type="checkbox" id="po-exec" checked><span class="pdf-opt-txt">Executed Techniques</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-apt" checked><span class="pdf-opt-txt">APT Group Correlation</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-oc" checked><span class="pdf-opt-txt">OpenClaw Integration Status</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-output" checked><span class="pdf-opt-txt">Victim Command Output</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-logs" checked><span class="pdf-opt-txt">Critical Security Alerts</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-learned"><span class="pdf-opt-txt">Autonomous Engine Learned Techniques</span></label>
+    </div>
+    <div class="pdf-prog" id="pdf-prog"><div class="pdf-prog-bar"><div class="pdf-prog-fill" id="pdf-fill"></div></div><div class="pdf-prog-txt" id="pdf-txt">Generating...</div></div>
+    <div style="display:flex;gap:10px">
+      <button class="mbtn mbtn-cancel" style="flex:1" onclick="closeModal('pdf')">CANCEL</button>
+      <button class="pdf-gen" style="flex:2;margin-top:0" onclick="generatePDF()">⬇ GENERATE & DOWNLOAD</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-hex">⬡</div>
+    <div>
+      <div class="logo-text">WEBSECSSIM</div>
+      <div class="logo-sub">OpenClaw C2 Intelligence Platform v3.0 — Live API Connected</div>
+    </div>
+  </div>
+  <div class="hdr-pills">
+    <div class="pill pill-blue" id="pill-gw"><div class="pill-dot"></div><span id="pill-gw-txt">CONNECTING</span></div>
+    <div class="pill pill-green" id="pill-agent"><div class="pill-dot"></div><span id="pill-agent-txt">0 AGENTS</span></div>
+    <div class="pill pill-orange" id="pill-oc"><div class="pill-dot"></div><span>OPENCLAW</span></div>
+    <div class="pill pill-purple"><div class="pill-dot"></div><span id="pill-ai-txt">GPT-4O MINI</span></div>
+    <div class="clock" id="clock">--:--:--</div>
+    <button class="hdr-btn btn-refresh" onclick="refreshAll()"><span id="ri">↻</span> REFRESH</button>
+    <button class="hdr-btn btn-cfg" onclick="openModal('cfg')">⚙</button>
+    <button class="hdr-btn btn-pdf" onclick="openModal('pdf')">📄 PDF</button>
+    <button class="hdr-btn btn-reset" onclick="openModal('reset')">⟳ RESET</button>
+  </div>
+</header>
+
+<div class="main">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-label">Navigation</div>
+  <div class="nav-item active" onclick="showView('dashboard',this)"><span>⬡</span> Dashboard</div>
+  <div class="nav-item" onclick="showView('openclaw',this)"><span>🦞</span> OpenClaw Hub<span class="nav-badge nb-orange">NEW</span></div>
+  <div class="nav-item" onclick="showView('attack',this)"><span>⚡</span> Attack Console<span class="nav-badge nb-red" id="nb-atk">35</span></div>
+  <div class="nav-item" onclick="showView('autonomous',this)"><span>🤖</span> Autonomous Engine<span class="nav-badge nb-green">835</span></div>
+  <div class="nav-item" onclick="showView('apt',this)"><span>👁</span> APT Correlation<span class="nav-badge nb-purple" id="nb-apt">0</span></div>
+  <div class="nav-item" onclick="showView('telegram',this)"><span>📱</span> Telegram Commands</div>
+  <div class="nav-item" onclick="showView('logs',this)"><span>📡</span> Live Logs<span class="nav-badge nb-red" id="nb-logs">0</span></div>
+
+  <div class="sb-label" style="margin-top:10px">Quick Actions</div>
+  <div class="sb-actions">
+    <button class="sb-action-btn sba-pdf" onclick="openModal('pdf')">📄 Generate PDF Report</button>
+    <button class="sb-action-btn sba-nav" onclick="exportLayer()">⬇ Export Navigator JSON</button>
+    <button class="sb-action-btn sba-reset" onclick="openModal('reset')">⟳ Reset C2 Session</button>
+    <button class="sb-action-btn sba-tg" onclick="showView('telegram',null)">📱 Telegram Commands</button>
+  </div>
+
+  <div class="sb-label">C2 Backend</div>
+  <div class="sb-card" id="health-card">
+    <div class="sb-card-title" id="hc-status" style="color:var(--text3)">● Connecting...</div>
+    <div class="sb-row"><span>MITRE</span><span id="hc-mitre">—</span></div>
+    <div class="sb-row"><span>APT Groups</span><span id="hc-apt">—</span></div>
+    <div class="sb-row"><span>Executed</span><span id="hc-exec">—</span></div>
+    <div class="sb-row"><span>AI Model</span><span id="hc-ai">—</span></div>
+  </div>
+
+  <div class="sb-label" style="margin-top:6px">OpenClaw Stack</div>
+  <div class="sb-card" style="border-color:rgba(255,107,53,0.3)">
+    <div class="sb-card-title" style="color:var(--orange)">🦞 OpenClaw 2026.3.13</div>
+    <div class="sb-row"><span>Gateway</span><span id="oc-gw">ws://127.0.0.1:18789</span></div>
+    <div class="sb-row"><span>Skill</span><span style="color:var(--orange)">c2_operator</span></div>
+    <div class="sb-row"><span>Channel</span><span>Telegram Bot</span></div>
+    <div class="sb-row"><span>Operator AI</span><span style="color:var(--purple)">GPT-4o mini</span></div>
+  </div>
+
+  <div class="sb-label" style="margin-top:6px">Victim Agents</div>
+  <div id="agents-sb">
+    <div class="sb-card" style="border-color:rgba(255,61,90,0.2)">
+      <div class="sb-card-title" style="color:var(--text3)">● No agents</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3)">Waiting for beacon...</div>
+    </div>
+  </div>
+
+  <div class="sb-label" style="margin-top:6px">Last Refreshed</div>
+  <div class="sb-card" style="border-color:rgba(0,212,255,0.12)">
+    <div class="sb-row"><span>Health</span><span id="upd-h" style="color:var(--text3)">—</span></div>
+    <div class="sb-row"><span>Logs</span><span id="upd-l" style="color:var(--text3)">—</span></div>
+    <div class="sb-row"><span>APT</span><span id="upd-a" style="color:var(--text3)">—</span></div>
+    <div class="sb-row"><span>Output</span><span id="upd-o" style="color:var(--text3)">—</span></div>
+  </div>
+</aside>
+
+<!-- CONTENT -->
+<main class="content" id="content">
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard">
+    <div class="stats-grid slide-in">
+      <div class="sc red"><div class="sc-label">Critical Alerts</div><div class="sc-val" id="sv-crit">—</div><div class="sc-sub">Live events</div></div>
+      <div class="sc green"><div class="sc-label">Techniques Run</div><div class="sc-val" id="sv-exec">—</div><div class="sc-sub">This session</div></div>
+      <div class="sc purple"><div class="sc-label">APT Matches</div><div class="sc-val" id="sv-apt">—</div><div class="sc-sub">Correlated groups</div></div>
+      <div class="sc warn"><div class="sc-label">Tasks Pending</div><div class="sc-val" id="sv-tasks">—</div><div class="sc-sub">Victim queue</div></div>
+      <div class="sc orange"><div class="sc-label">OC Skills</div><div class="sc-val">4</div><div class="sc-sub">Integration points</div></div>
+      <div class="sc"><div class="sc-label">MITRE DB</div><div class="sc-val" id="sv-mitre">835</div><div class="sc-sub">Techniques loaded</div></div>
+    </div>
+
+    <!-- Kill Chain -->
+    <div class="panel slide-in d1">
+      <div class="ph"><span class="ph-title">Kill Chain Progress</span><span class="ph-live">LIVE</span></div>
+      <div class="kc">
+        <div class="kc-s" id="kc-recon"><div class="kc-ic">🔍</div><div class="kc-lb">Recon</div></div>
+        <div class="kc-s" id="kc-disc"><div class="kc-ic">📡</div><div class="kc-lb">Discovery</div></div>
+        <div class="kc-s" id="kc-cred"><div class="kc-ic">🔑</div><div class="kc-lb">Credential</div></div>
+        <div class="kc-s" id="kc-priv"><div class="kc-ic">⬆</div><div class="kc-lb">Priv Esc</div></div>
+        <div class="kc-s" id="kc-lat"><div class="kc-ic">🔗</div><div class="kc-lb">Lateral Mv</div></div>
+        <div class="kc-s" id="kc-col"><div class="kc-ic">📦</div><div class="kc-lb">Collection</div></div>
+        <div class="kc-s" id="kc-exf"><div class="kc-ic">🚀</div><div class="kc-lb">Exfil</div></div>
+        <div class="kc-s" id="kc-eva"><div class="kc-ic">🛡</div><div class="kc-lb">Evasion</div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- Executed techniques -->
+      <div class="panel slide-in d2">
+        <div class="ph"><span class="ph-title">Executed Techniques</span><span class="ph-live">LIVE</span></div>
+        <div id="exec-list" style="padding:10px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto">
+          <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+      </div>
+      <!-- APT mini -->
+      <div class="panel slide-in d3">
+        <div class="ph"><span class="ph-title">Top APT Matches</span><span class="ph-live">LIVE</span></div>
+        <div class="apt-list" id="apt-mini"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- Tactic chart -->
+    <div class="panel slide-in d4">
+      <div class="ph"><span class="ph-title">Tactic Coverage</span><span class="ph-badge" id="chart-badge">Session activity</span></div>
+      <div class="chart-area" id="chart"></div>
+      <div class="chart-labels" id="chart-labels"></div>
+    </div>
+  </div>
+
+  <!-- OPENCLAW HUB -->
+  <div id="view-openclaw" style="display:none">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">🦞 OpenClaw Integration Hub</span><span class="ph-badge">4 active integration points</span></div>
+      <div class="oc-grid">
+        <div class="oc-card tg">
+          <div class="oc-card-icon">📱</div>
+          <div class="oc-card-title">Telegram Bot</div>
+          <div class="oc-card-stat" id="oc-agent-count">1</div>
+          <div class="oc-card-sub">Agent connected<br>Bot: My C2 Bot</div>
+        </div>
+        <div class="oc-card ai">
+          <div class="oc-card-icon">🧠</div>
+          <div class="oc-card-title">AI Analyst</div>
+          <div class="oc-card-stat">GPT</div>
+          <div class="oc-card-sub">gpt-4o-mini<br>explain · hunt · analyze</div>
+        </div>
+        <div class="oc-card auto">
+          <div class="oc-card-icon">🤖</div>
+          <div class="oc-card-title">Autonomous Engine</div>
+          <div class="oc-card-stat">835</div>
+          <div class="oc-card-sub">All MITRE techniques<br>Self-improving loop</div>
+        </div>
+        <div class="oc-card skill">
+          <div class="oc-card-icon">⚡</div>
+          <div class="oc-card-title">C2 Skill (run.sh)</div>
+          <div class="oc-card-stat" id="oc-skill-count">35</div>
+          <div class="oc-card-sub">Standard techniques<br>Live victim queuing</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Skill Files</span><span class="ph-badge">~/.openclaw/skills/c2-operator/</span></div>
+        <div style="padding:12px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;border-left:2px solid var(--orange)">
+            <span style="font-size:16px">📄</span>
+            <div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--orange)">SKILL.md</div><div style="font-size:10px;color:var(--text2)">Natural language trigger definitions</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;border-left:2px solid var(--accent)">
+            <span style="font-size:16px">⚡</span>
+            <div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent)">c2.js</div><div style="font-size:10px;color:var(--text2)">Core C2 helper — 12 commands</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;border-left:2px solid var(--accent2)">
+            <span style="font-size:16px">🔧</span>
+            <div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--accent2)">run.sh</div><div style="font-size:10px;color:var(--text2)">Env wrapper with credentials baked in</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;border-left:2px solid var(--purple)">
+            <span style="font-size:16px">🤖</span>
+            <div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--purple)">dynamic-attack.js</div><div style="font-size:10px;color:var(--text2)">Autonomous engine — all 835 techniques</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:9px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;border-left:2px solid var(--purple)">
+            <span style="font-size:16px">🚀</span>
+            <div><div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--purple)">dynamic.sh</div><div style="font-size:10px;color:var(--text2)">Auto engine wrapper — auto · smart · learnall</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="ph-title">Gateway Status</span><span class="ph-badge">ws://127.0.0.1:18789</span></div>
+        <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="padding:10px;background:var(--bg3);border:1px solid rgba(0,255,136,0.2);border-radius:2px">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent2);margin-bottom:6px">ACTIVE INTEGRATIONS</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+              <div style="font-size:11px;color:var(--text2)">✅ Telegram Bot API</div>
+              <div style="font-size:11px;color:var(--text2)">✅ GPT-4o mini</div>
+              <div style="font-size:11px;color:var(--text2)">✅ c2_operator skill</div>
+              <div style="font-size:11px;color:var(--text2)">✅ session-memory hook</div>
+              <div style="font-size:11px;color:var(--text2)">✅ clawhub installed</div>
+              <div style="font-size:11px;color:var(--text2)">✅ tools.profile: full</div>
+            </div>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:6px">STARTUP COMMAND</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);line-height:1.8">su - ocuser<br>bash ~/start-c2.sh<br><span style="color:var(--text3)"># Tab 2:</span><br>openclaw tui</div>
+          </div>
+          <div style="padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:2px">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:4px">OPENCLAW VERSION</div>
+            <div style="font-family:'Orbitron',monospace;font-size:16px;color:var(--orange)">2026.3.13</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px">Node.js v22.22.0 — npm global</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTACK CONSOLE -->
+  <div id="view-attack" style="display:none">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Attack Console — Standard Techniques</span><span class="ph-live">Click to queue on victim via /api/attack/{t}</span></div>
+      <div id="atk-loading" class="loading"><div class="spinner"></div>Loading from /api/attack/supported...</div>
+      <div class="tech-grid" id="tech-grid" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- AUTONOMOUS ENGINE -->
+  <div id="view-autonomous" style="display:none">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">🤖 Autonomous AI Attack Engine</span><span class="ph-badge">Self-improving — 835 MITRE techniques via GPT-4o mini</span></div>
+      <div class="auto-grid">
+        <div class="auto-btn" onclick="runAuto('discovery')">
+          <div class="auto-btn-icon">🔍</div>
+          <div class="auto-btn-title">Auto Discovery</div>
+          <div class="auto-btn-sub">AI selects 5 best discovery techniques for victim OS</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('credential')">
+          <div class="auto-btn-icon">🔑</div>
+          <div class="auto-btn-title">Credential Access</div>
+          <div class="auto-btn-sub">Smart retry loop — generates alternative commands on failure</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('privesc')">
+          <div class="auto-btn-icon">⬆</div>
+          <div class="auto-btn-title">Privilege Escalation</div>
+          <div class="auto-btn-sub">AI generates priv esc commands beyond the standard 35</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('persistence')">
+          <div class="auto-btn-icon">🔗</div>
+          <div class="auto-btn-title">Persistence</div>
+          <div class="auto-btn-sub">Autostart, cron, and service-based persistence techniques</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('evasion')">
+          <div class="auto-btn-icon">🛡</div>
+          <div class="auto-btn-title">Defense Evasion</div>
+          <div class="auto-btn-sub">Log clearing, firewall tampering, permission changes</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('learnall')" style="border-color:rgba(255,61,90,0.3)">
+          <div class="auto-btn-icon">🤖</div>
+          <div class="auto-btn-title" style="color:var(--danger)">Full Autonomous — All 6 Tactics</div>
+          <div class="auto-btn-sub">Complete kill chain — self-improving across all tactics</div>
+        </div>
+      </div>
+      <div id="auto-output" class="auto-output"></div>
+      <div id="auto-stats" style="display:none;padding:0 12px 12px;display:none;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div class="sc green" style="padding:10px"><div class="sc-label">Succeeded</div><div class="sc-val" id="as1" style="font-size:18px">0</div></div>
+        <div class="sc red" style="padding:10px"><div class="sc-label">Failed</div><div class="sc-val" id="as2" style="font-size:18px">0</div></div>
+        <div class="sc" style="padding:10px"><div class="sc-label">AI Generated</div><div class="sc-val" id="as3" style="font-size:18px">0</div></div>
+        <div class="sc purple" style="padding:10px"><div class="sc-label">Self-Improved</div><div class="sc-val" id="as4" style="font-size:18px">0</div></div>
+      </div>
+    </div>
+
+    <!-- Learned techniques panel -->
+    <div class="panel">
+      <div class="ph"><span class="ph-title">Learned Technique Database</span><span class="ph-badge">~/.openclaw/memory/learned_techniques.json</span></div>
+      <div id="learned-list" class="learned-list">
+        <div class="empty"><div class="empty-icon">🧠</div>No learned techniques yet<br><span style="font-size:10px">Run autonomous attacks to populate the knowledge base</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APT CORRELATION -->
+  <div id="view-apt" style="display:none">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">APT Group Correlation</span><span class="ph-live">Live from /api/apt/correlate</span></div>
+      <div id="apt-loading" class="loading"><div class="spinner"></div>Correlating against 168 MITRE ATT&CK groups...</div>
+      <div class="apt-list" id="apt-full" style="display:none;max-height:calc(100vh - 200px);overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- TELEGRAM COMMANDS -->
+  <div id="view-telegram" style="display:none">
+    <div class="panel">
+      <div class="ph"><span class="ph-title">📱 Telegram Command Reference</span><span class="ph-badge">Click copy to copy the command</span></div>
+      <div class="tg-cmds" id="tg-cmds"></div>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div id="view-logs" style="display:none">
+    <div class="panel" style="height:calc(100vh - 120px);display:flex;flex-direction:column">
+      <div class="ph">
+        <span class="ph-title">Live Security Event Log</span>
+        <span class="ph-live">Auto-refresh every 5s</span>
+      </div>
+      <div style="display:flex;gap:7px;padding:7px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <select id="log-level" onchange="filterLogs()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 7px;border-radius:2px;outline:none">
+          <option value="">ALL LEVELS</option><option value="critical">CRITICAL</option><option value="alert">ALERT</option><option value="warn">WARN</option><option value="info">INFO</option>
+        </select>
+        <select id="log-cat" onchange="filterLogs()" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;padding:4px 7px;border-radius:2px;outline:none">
+          <option value="">ALL CATEGORIES</option><option value="security">SECURITY</option><option value="network">NETWORK</option><option value="filesystem">FILESYSTEM</option><option value="system">SYSTEM</option><option value="attack">ATTACK</option>
+        </select>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);margin-left:auto;padding:4px 0" id="log-ct">0 events</span>
+      </div>
+      <div class="logs-c" id="logs-full"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- RIGHT PANEL -->
+<aside class="rp">
+  <div class="rp-tabs">
+    <div class="rp-tab active" onclick="rtab('feed',this)">Feed</div>
+    <div class="rp-tab" onclick="rtab('output',this)">Output</div>
+    <div class="rp-tab" onclick="rtab('nav',this)">Navigator</div>
+  </div>
+  <div id="rt-feed" class="logs-c" style="flex:1"></div>
+  <div id="rt-output" style="display:none;flex:1;overflow-y:auto;padding:10px">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);margin-bottom:8px;letter-spacing:2px">VICTIM OUTPUT — LIVE</div>
+    <div id="vout"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+  <div id="rt-nav" style="display:none;flex:1;padding:10px;overflow-y:auto">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);margin-bottom:9px;letter-spacing:2px">ATT&CK NAVIGATOR</div>
+    <div id="nav-grid" class="nav-grid" style="margin-bottom:12px"></div>
+    <button class="console-btn" style="width:100%;margin-bottom:6px;font-size:10px" onclick="exportLayer()">⬇ Export Navigator JSON</button>
+    <button class="console-btn" style="width:100%;font-size:10px;background:rgba(168,85,247,0.08);border-color:rgba(168,85,247,0.25);color:var(--purple)" onclick="openModal('pdf')">📄 Generate PDF</button>
+  </div>
+  <div class="console-area">
+    <span class="console-prompt">⟩</span>
+    <input class="console-input" id="cmd" placeholder="run T1082 · apt · health · reset · pdf · tg" onkeydown="if(event.key==='Enter')execCmd()">
+    <button class="console-btn" onclick="execCmd()">EXEC</button>
+  </div>
+</aside>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+let CFG={
+  url:  'http://localhost:8000',
+  user: 'admin',
+  pass: 'admin123'
+};
+let TOKEN=null, logEntries=[], lastLogId=0, critCount=0;
+let supportedT=[], executedT={}, aptMatches=[], agents={}, victimOutput={}, healthData={};
+let sessionStart=new Date();
+
+// ── TELEGRAM COMMANDS DATA ──
+const TG_CMDS=[
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh health', desc:'Check C2 backend health status'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh list',   desc:'List all 35 supported attack techniques'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh run T1082', desc:'Execute System Information Discovery on victim'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh run T1003', desc:'Execute OS Credential Dumping on victim'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh run T1057', desc:'Execute Process Discovery on victim'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh agents',  desc:'Show connected victim agents'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh output',  desc:'Get latest victim command output'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh apt',     desc:'Run APT group correlation report'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh explain T1003', desc:'AI explains OS Credential Dumping technique'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh alerts',  desc:'Poll and push new critical/alert logs'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh reset',   desc:'Reset C2 session — clears all state'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh hunt "T1003,T1082" "last 24 hours"', desc:'Generate threat hunting plan for technique cluster'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh chat "how does dcsync work"', desc:'Ask GPT-4o mini any cybersecurity question'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh help',          desc:'Show autonomous engine commands'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh auto discovery', desc:'AI auto-attacks using discovery tactic'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh smart discovery', desc:'Self-improving attack with retry loop'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh learnall',       desc:'Full autonomous attack — all 6 tactics'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh learned',        desc:'Show all learned techniques database'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh stats',          desc:'Show self-improvement statistics'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/chains.sh recon',           desc:'Run full reconnaissance chain'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/chains.sh fullattack',      desc:'Run complete kill chain across all tactics'},
+];
+
+// ── AUTONOMOUS SEQUENCES (demo) ──
+const AUTO_SEQ={
+  discovery:["[1/5] Profiling victim via /api/agents + /api/output","      Host: websecsim-victim-c2 | OS: Ubuntu 22.04 x86_64","[2/5] Fetching MITRE DISCOVERY techniques from /api/mitre/search","      Found 20 techniques in database","[3/5] GPT-4o mini selecting optimal techniques for victim...","      Selected: T1082, T1057, T1087, T1033, T1046","[4/5] Executing via /api/attack/{t}...","  [1/5] T1082 ... QUEUED ✓ System Information Discovery","  [2/5] T1057 ... QUEUED ✓ Process Discovery","  [3/5] T1087 ... QUEUED ✓ Account Discovery","  [4/5] T1033 ... QUEUED ✓ System Owner/User Discovery","  [5/5] T1046 ... QUEUED ✓ Network Service Scanning","[5/5] Waiting 15s for victim execution...","=== VICTIM OUTPUT ===","[T1082] Linux websecsim 6.8.11-amd64 Ubuntu 22.04.5 LTS","=== APT CORRELATION ===","Rank 1: Storm-0501 (G1053) — 7.1% match","Rank 2: Mustang Panda (G0129) — 3.5% match","=== COMPLETE === Techniques: 5 | Standard: 5 | AI-gen: 0"],
+  credential:["[1/5] Profiling victim...","[2/5] Fetching CREDENTIAL-ACCESS techniques — 15 found","[3/5] GPT-4o mini selecting...","      Selected: T1003, T1552, T1555, T1110, T1556","[4/5] Self-improving execution loop (max 3 retries)...","  ┌─ [1/5] T1003 — OS Credential Dumping","  │  Standard API: QUEUED ✓","  └─ SUCCESS (standard)","  ┌─ [2/5] T1552 — Unsecured Credentials","  │  [Attempt 1] AI cmd: grep -r 'password' /etc/*.conf","  └─ SUCCESS (attempt 1)","  ┌─ [3/5] T1555 — Credentials from Password Stores","  │  [Attempt 1] Command failed — generating alternative...","  │  [Attempt 2] cmd: find /home -name '.bash_history'","  └─ SUCCESS (attempt 2) ← SELF-IMPROVED ✨","🚨 SENSITIVE DATA — Auto-analyzing via GPT-4o mini...","  Risk: CRITICAL — root hash + user hashes exposed","  Action: Rotate credentials immediately","=== COMPLETE === Succeeded:5 | AI-gen:3 | Self-improved:1"],
+  privesc:["[1/5] Profiling victim...","[2/5] Fetching PRIVILEGE-ESCALATION techniques — 12 found","[3/5] GPT-4o mini selecting...","      Selected: T1068, T1548, T1134, T1055, T1547","[4/5] Executing...","  [1/5] T1068 ... QUEUED ✓ Exploitation for Privilege Escalation","  [2/5] T1548 ... QUEUED ✓ Abuse Elevation Control Mechanism","  [3/5] T1134 ... AI cmd: cat /proc/*/status | grep -i 'uid\\|gid'","  [4/5] T1055 ... AI cmd: ls -la /proc/1/fd 2>/dev/null","  [5/5] T1547 ... QUEUED ✓ Boot or Logon Autostart Execution","=== COMPLETE === Standard:3 | AI-generated:2"],
+  persistence:["[1/5] Profiling victim...","[2/5] Fetching PERSISTENCE techniques — 18 found","[3/5] GPT-4o mini selecting...","      Selected: T1053, T1547, T1505, T1098, T1543","[4/5] Executing...","  [1/5] T1053.003 ... QUEUED ✓ Cron persistence","  [2/5] T1547 ... QUEUED ✓ Boot Logon Autostart","  [3/5] T1505 ... QUEUED ✓ Server Software Component","  [4/5] T1098 ... AI cmd: echo 'AUTHORIZED_KEY' >> ~/.ssh/authorized_keys","  [5/5] T1543 ... AI cmd: systemctl list-units --type=service","=== COMPLETE === Standard:3 | AI-generated:2"],
+  evasion:["[1/5] Profiling victim...","[2/5] Fetching DEFENSE-EVASION techniques — 22 found","[3/5] GPT-4o mini selecting...","      Selected: T1070, T1562, T1222, T1036, T1027","[4/5] Executing...","  [1/5] T1070 ... QUEUED ✓ Indicator Removal","  [2/5] T1562 ... QUEUED ✓ Impair Defenses","  [3/5] T1222 ... QUEUED ✓ File Permission Modification","  [4/5] T1036 ... AI cmd: cp /bin/bash /tmp/.hidden_bash","  [5/5] T1027 ... AI cmd: base64 /etc/passwd | head -5","=== COMPLETE === Standard:3 | AI-generated:2"],
+  learnall:["╔══════════════════════════════════════╗","║   FULL AUTONOMOUS ATTACK MODE         ║","║   6 tactics · 835 MITRE techniques    ║","║   Self-improving retry loop: 3x       ║","╚══════════════════════════════════════╝","","━━━ TACTIC 1/6: DISCOVERY ━━━","Selected: T1082,T1057,T1087,T1033,T1046 — All queued","","━━━ TACTIC 2/6: CREDENTIAL-ACCESS ━━━","T1003: standard | T1552: AI-gen | T1555: SELF-IMPROVED ✨","🚨 SENSITIVE DATA: root hash dumped — GPT-4o mini analyzed","","━━━ TACTIC 3/6: PRIVILEGE-ESCALATION ━━━","T1068: standard | T1134: AI cmd generated","","━━━ TACTIC 4/6: PERSISTENCE ━━━","T1053.003: standard | T1098: AI cmd generated","","━━━ TACTIC 5/6: COLLECTION ━━━","T1005: standard | T1039: AI cmd generated","","━━━ TACTIC 6/6: DEFENSE-EVASION ━━━","T1070: standard | T1036: AI cmd | T1027: SELF-IMPROVED ✨","","╔══════════════════════════════════════╗","║   FULL LEARNING COMPLETE              ║","║   Techniques: 24  Standard: 15        ║","║   AI-generated: 9  Self-improved: 4   ║","║   Sensitive data found: 2             ║","╚══════════════════════════════════════╝"]
+};
+
+// ── CLOCK ──
+function clock(){const n=new Date();document.getElementById('clock').textContent=n.toUTCString().slice(17,25)+' UTC';}
+setInterval(clock,1000);clock();
+
+// ── MODALS ──
+function openModal(id){document.getElementById('modal-'+id).classList.add('show');}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('show');}
+
+// ── CONFIG ──
+function saveConfig(){
+  CFG.url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
+  CFG.user=document.getElementById('cfg-user').value.trim();
+  CFG.pass=document.getElementById('cfg-pass').value;
+  
+  
+  
+  TOKEN=null;
+  closeModal('cfg');
+  refreshAll();
+  showBanner('Config saved — connecting to '+CFG.url,'ok');
+}
+function openModal(id){
+  if(id==='cfg'){document.getElementById('cfg-url').value=CFG.url;document.getElementById('cfg-user').value=CFG.user;document.getElementById('cfg-pass').value=CFG.pass;}
+  document.getElementById('modal-'+id).classList.add('show');
+}
+
+// ── HTTP ──
+async function getToken(){
+  if(TOKEN) return TOKEN;
+  const b='username='+encodeURIComponent(CFG.user)+'&password='+encodeURIComponent(CFG.pass);
+  const r=await fetch(CFG.url+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+  if(!r.ok) throw new Error('Auth failed');
+  const d=await r.json();TOKEN=d.access_token;return TOKEN;
+}
+async function api(path,method='GET',body=null,auth=true){
+  const h={'Content-Type':'application/json'};
+  if(auth) h['Authorization']='Bearer '+(await getToken());
+  const o={method,headers:h};
+  if(body) o.body=JSON.stringify(body);
+  const r=await fetch(CFG.url+path,o);
+  if(r.status===401){TOKEN=null;h['Authorization']='Bearer '+(await getToken());return fetch(CFG.url+path,o).then(x=>x.json());}
+  if(!r.ok) throw new Error(path+' returned '+r.status);
+  return r.json();
+}
+
+// ── BANNER ──
+function showBanner(msg,type){
+  const b=document.getElementById('banner');
+  b.textContent=msg;b.className='banner '+type;
+  setTimeout(()=>b.className='banner',3000);
+}
+function flash(msg,col){
+  const f=document.createElement('div');
+  f.style.cssText='position:fixed;top:76px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);border:1px solid '+col+';color:'+col+';padding:11px 26px;border-radius:3px;font-family:"Share Tech Mono",monospace;font-size:11px;letter-spacing:2px;z-index:99999';
+  f.textContent=msg;document.body.appendChild(f);setTimeout(()=>f.remove(),2600);
+}
+
+// ── FETCH: HEALTH ──
+async function fetchHealth(){
+  try{
+    const d=await api('/health','GET',null,false);
+    healthData=d;
+    const gw=document.getElementById('pill-gw');
+    gw.className='pill pill-green';
+    document.getElementById('pill-gw-txt').textContent='GATEWAY ONLINE';
+    document.getElementById('pill-ai-txt').textContent=(d.ai_model||'AI').split('-')[0].toUpperCase()+' READY';
+    document.getElementById('hc-status').textContent='● '+(d.status||'').toUpperCase();
+    document.getElementById('hc-status').style.color=d.status==='healthy'?'var(--accent2)':'var(--danger)';
+    document.getElementById('hc-mitre').textContent=(d.technique_count||0)+' ('+d.mitre_source+')';
+    document.getElementById('hc-apt').textContent=d.apt_groups_loaded||0;
+    document.getElementById('hc-exec').textContent=d.executed_techniques||0;
+    document.getElementById('hc-ai').textContent=d.ai_model||'—';
+    setVal('sv-tasks',d.tasks_pending||0);
+    setVal('sv-mitre',d.technique_count||835);
+    document.getElementById('upd-h').textContent=now();
+    document.getElementById('upd-h').style.color='var(--accent2)';
+  }catch(e){
+    document.getElementById('pill-gw').className='pill pill-red';
+    document.getElementById('pill-gw-txt').textContent='OFFLINE';
+    showBanner('Cannot reach '+CFG.url+' — click ⚙ to configure','err');
+  }
+}
+
+// ── FETCH: AGENTS ──
+async function fetchAgents(){
+  try{
+    agents=await api('/api/agents','GET',null,false);
+    const keys=Object.keys(agents);
+    document.getElementById('pill-agent').className='pill '+(keys.length>0?'pill-green':'pill-red');
+    document.getElementById('pill-agent-txt').textContent=keys.length+' AGENT'+(keys.length!==1?'S':'');
+    document.getElementById('oc-agent-count').textContent=keys.length;
+    const sb=document.getElementById('agents-sb');sb.innerHTML='';
+    if(!keys.length){
+      sb.innerHTML='<div class="sb-card" style="border-color:rgba(255,61,90,0.2)"><div class="sb-card-title" style="color:var(--text3)">● No agents</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--text3)">Waiting for beacon...</div></div>';
+    } else {
+      keys.forEach(h=>{
+        const d=document.createElement('div');d.className='sb-card';
+        d.innerHTML='<div class="sb-card-title">● '+h+'</div><div class="sb-row"><span>Last seen</span><span>'+timeAgo(agents[h].last_seen)+'</span></div>';
+        sb.appendChild(d);
+      });
+    }
+  }catch(e){}
+}
+
+// ── FETCH: SUPPORTED ──
+async function fetchSupported(){
+  try{
+    const d=await api('/api/attack/supported','GET',null,false);
+    supportedT=d.techniques||[];
+    document.getElementById('nb-atk').textContent=supportedT.length;
+    document.getElementById('oc-skill-count').textContent=supportedT.length;
+  }catch(e){}
+}
+
+// ── FETCH: EXECUTED ──
+async function fetchExecuted(){
+  try{
+    const layer=await api('/api/navigator/layer','GET',null,false);
+    executedT={};
+    (layer.techniques||[]).forEach(t=>{executedT[t.techniqueID]={count:t.score||1};});
+    setVal('sv-exec',Object.keys(executedT).length);
+  }catch(e){}
+}
+
+// ── FETCH: APT ──
+async function fetchAPT(){
+  try{
+    const d=await api('/api/apt/correlate?top_n=10','GET',null,false);
+    aptMatches=d.top_matches||[];
+    setVal('sv-apt',aptMatches.length);
+    document.getElementById('nb-apt').textContent=aptMatches.length;
+    document.getElementById('upd-a').textContent=now();
+    document.getElementById('upd-a').style.color='var(--accent2)';
+  }catch(e){}
+}
+
+// ── FETCH: LOGS ──
+async function fetchLogs(){
+  try{
+    const level=document.getElementById('log-level').value;
+    const cat=document.getElementById('log-cat').value;
+    let path='/api/logs?since_id='+lastLogId+'&limit=100';
+    if(level) path+='&level='+level;
+    if(cat) path+='&category='+cat;
+    const d=await api(path,'GET',null,false);
+    const newLogs=d.logs||[];
+    newLogs.forEach(e=>{
+      logEntries.unshift(e);
+      if(e.level==='critical') critCount++;
+      renderFeedEntry(e);
+      if(document.getElementById('view-logs').style.display!=='none') prependLogEl(document.getElementById('logs-full'),e);
+    });
+    if(logEntries.length>500) logEntries=logEntries.slice(0,500);
+    if(d.latest_id>lastLogId) lastLogId=d.latest_id;
+    setVal('sv-crit',critCount);
+    document.getElementById('nb-logs').textContent=Math.min(logEntries.length,99);
+    document.getElementById('log-ct').textContent=logEntries.length+' events';
+    document.getElementById('upd-l').textContent=now();
+    document.getElementById('upd-l').style.color='var(--accent2)';
+  }catch(e){}
+}
+
+// ── FETCH: OUTPUT ──
+async function fetchOutput(){
+  try{
+    victimOutput={};
+    for(const host of Object.keys(agents)){
+      const d=await api('/api/output/'+host,'GET',null,false);
+      victimOutput[host]=d||[];
+    }
+    document.getElementById('upd-o').textContent=now();
+    document.getElementById('upd-o').style.color='var(--accent2)';
+  }catch(e){}
+}
+
+// ── EXECUTE ATTACK ──
+async function executeAttack(tCode){
+  try{
+    const d=await api('/api/attack/'+tCode,'POST');
+    addFeedLog('alert','attack','c2','Queued: '+tCode+' — '+d.status);
+    showBanner('Task queued: '+tCode,'ok');
+    setTimeout(refreshAll,8000);
+    return true;
+  }catch(e){showBanner('Failed to queue '+tCode+': '+e.message,'err');return false;}
+}
+
+// ── RESET ──
+async function confirmReset(){
+  closeModal('reset');
+  try{
+    await api('/api/system/reset','POST');
+    executedT={};aptMatches=[];victimOutput={};logEntries=[];
+    critCount=0;lastLogId=0;sessionStart=new Date();
+    document.getElementById('rt-feed').innerHTML='';
+    const lf=document.getElementById('logs-full');if(lf) lf.innerHTML='';
+    document.getElementById('nb-logs').textContent='0';
+    showBanner('Session reset complete','ok');
+    flash('SESSION RESET COMPLETE','var(--danger)');
+    await refreshAll();
+  }catch(e){showBanner('Reset failed: '+e.message,'err');}
+}
+
+// ── REFRESH ALL ──
+async function refreshAll(){
+  const ri=document.getElementById('ri');ri.classList.add('spin');
+  try{
+    await fetchHealth();await fetchAgents();
+    await Promise.all([fetchSupported(),fetchExecuted(),fetchLogs(),fetchOutput()]);
+    await fetchAPT();
+    renderAll();
+  }finally{ri.classList.remove('spin');}
+}
+
+function renderAll(){
+  buildExecList();buildAptMini();buildChart();buildNav();updateKillChain();
+  if(document.getElementById('view-attack').style.display!=='none') buildGrid();
+  if(document.getElementById('view-apt').style.display!=='none') buildAptFull();
+  if(document.getElementById('rt-output').style.display!=='none') buildVout();
+}
+
+// ── BUILD: EXEC LIST ──
+function buildExecList(){
+  const l=document.getElementById('exec-list');
+  const execs=Object.keys(executedT);
+  if(!execs.length){l.innerHTML='<div class="empty"><div class="empty-icon">🎯</div>No techniques executed<br><span style="font-size:10px">Use Attack Console or Telegram</span></div>';return;}
+  l.innerHTML='';
+  execs.forEach(tid=>{
+    const sup=supportedT.find(t=>t.technique===tid);
+    const name=sup?sup.name:tid;
+    const count=executedT[tid].count||1;
+    const d=document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--bg3);border:1px solid rgba(0,255,136,0.2);border-radius:2px;border-left:2px solid var(--accent2)';
+    d.innerHTML='<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--accent2)">'+tid+'</div>'
+      +'<div style="flex:1;font-size:11px">'+name+'</div>'
+      +(count>1?'<span style="background:var(--accent2);color:var(--bg);font-size:8px;padding:1px 5px;border-radius:8px;font-family:\'Share Tech Mono\',monospace">×'+count+'</span>':'')
+      +'<div style="width:5px;height:5px;border-radius:50%;background:var(--accent2)"></div>';
+    l.appendChild(d);
+  });
+}
+
+// ── BUILD: APT MINI ──
+function buildAptMini(){
+  const l=document.getElementById('apt-mini');
+  if(!aptMatches.length){l.innerHTML='<div class="empty"><div class="empty-icon">👁</div>No APT matches<br><span style="font-size:10px">Execute techniques first</span></div>';return;}
+  l.innerHTML='';
+  const cols=['var(--danger)','var(--warn)','var(--accent)','var(--purple)'];
+  aptMatches.slice(0,4).forEach((g,i)=>{
+    const c=cols[i]||'var(--accent2)';
+    const d=document.createElement('div');d.className='apt-row';
+    d.innerHTML='<div class="apt-rank">'+g.rank+'</div>'
+      +'<div class="apt-info"><div class="apt-name">'+g.name+'</div>'
+      +'<div class="apt-alias">'+g.group_id+' · '+(g.aliases||[]).slice(0,2).join(', ')+'</div>'
+      +'<div class="apt-matched-t">'+(g.matched_techniques||[]).join(' · ')+'</div>'
+      +'<div class="apt-bar-wrap"><div class="apt-bar" style="width:'+Math.min(g.score_pct*2,100)+'%;background:'+c+'"></div></div></div>'
+      +'<div class="apt-score"><div class="apt-pct" style="color:'+c+'">'+g.score_pct+'%</div><div class="apt-ov">'+g.overlap_count+'/'+g.group_total+'</div></div>';
+    l.appendChild(d);
+  });
+}
+
+// ── BUILD: APT FULL ──
+function buildAptFull(){
+  const loading=document.getElementById('apt-loading');
+  const full=document.getElementById('apt-full');
+  if(!aptMatches.length){
+    loading.style.display='flex';loading.innerHTML='<div class="empty" style="width:100%"><div class="empty-icon">👁</div>No APT matches yet<br><span style="font-size:10px">Execute techniques first</span></div>';
+    full.style.display='none';return;
+  }
+  loading.style.display='none';full.style.display='block';full.innerHTML='';
+  const cols=['var(--danger)','var(--warn)','var(--accent)','var(--purple)','var(--accent2)'];
+  aptMatches.forEach(g=>{
+    const c=cols[Math.min(g.rank-1,cols.length-1)];
+    const d=document.createElement('div');d.className='apt-row';d.style.marginBottom='6px';
+    d.innerHTML='<div class="apt-rank">'+g.rank+'</div>'
+      +'<div class="apt-info"><div class="apt-name">'+g.name+' <span style="color:var(--text3);font-size:10px">('+g.group_id+')</span></div>'
+      +'<div class="apt-alias">'+(g.aliases||[]).join(' / ')+'</div>'
+      +'<div class="apt-matched-t">Matched: '+(g.matched_techniques||[]).join(' · ')+'</div>'
+      +'<div class="apt-bar-wrap" style="margin-top:4px"><div class="apt-bar" style="width:'+Math.min(g.score_pct*2,100)+'%;background:'+c+'"></div></div></div>'
+      +'<div class="apt-score"><div class="apt-pct" style="color:'+c+'">'+g.score_pct+'%</div><div class="apt-ov">'+g.overlap_count+'/'+g.group_total+'</div></div>';
+    full.appendChild(d);
+  });
+}
+
+// ── BUILD: ATTACK GRID ──
+function buildGrid(){
+  const loading=document.getElementById('atk-loading');
+  const grid=document.getElementById('tech-grid');
+  if(!supportedT.length){loading.style.display='flex';grid.style.display='none';return;}
+  loading.style.display='none';grid.style.display='grid';grid.innerHTML='';
+  supportedT.forEach(t=>{
+    const isExec=!!executedT[t.technique];
+    const d=document.createElement('div');d.className='tc'+(isExec?' executed':'');
+    d.innerHTML='<div class="tc-id">'+t.technique+'</div><div class="tc-name">'+t.name+'</div>'
+      +(isExec?'<div class="tc-sub" style="color:var(--accent2)">✓ executed ×'+(executedT[t.technique].count||1)+'</div>':'<div class="tc-sub">ready</div>');
+    d.onclick=()=>queueT(t,d);
+    d.onmouseenter=e=>tip(e,t.technique,t.name+'\ncmd: '+t.command+'\nStatus: '+(isExec?'EXECUTED':'READY'));
+    d.onmouseleave=()=>document.getElementById('tooltip').classList.remove('visible');
+    grid.appendChild(d);
+  });
+}
+
+// ── QUEUE TECHNIQUE ──
+async function queueT(t,d){
+  if(d.classList.contains('queued')) return;
+  d.classList.add('queued');
+  const ok=await executeAttack(t.technique);
+  d.classList.remove('queued');
+  if(ok){d.classList.add('executed');addFeedLog('critical','attack','victim','EXECUTED: '+t.technique+' on victim');}
+}
+
+// ── BUILD: CHART ──
+function buildChart(){
+  const c=document.getElementById('chart');
+  const lb=document.getElementById('chart-labels');
+  c.innerHTML='';lb.innerHTML='';
+  const tacs={Discovery:0,Credential:0,'Priv Esc':0,Persistence:0,Collection:0,Evasion:0,'C2/Exfil':0};
+  Object.keys(executedT).forEach(tid=>{
+    const s=supportedT.find(t=>t.technique===tid);
+    if(!s) return;
+    const n=(s.name||'').toLowerCase();
+    if(n.includes('discovery')||n.includes('scan')||n.includes('enum')) tacs['Discovery']++;
+    else if(n.includes('credential')||n.includes('password')||n.includes('hash')) tacs['Credential']++;
+    else if(n.includes('privilege')||n.includes('escalat')||n.includes('elevation')) tacs['Priv Esc']++;
+    else if(n.includes('persist')||n.includes('scheduled')||n.includes('boot')||n.includes('logon')) tacs['Persistence']++;
+    else if(n.includes('collect')||n.includes('data from')) tacs['Collection']++;
+    else if(n.includes('evasion')||n.includes('indicator')||n.includes('impair')||n.includes('permission')) tacs['Evasion']++;
+    else tacs['C2/Exfil']++;
+  });
+  const cols={Discovery:'#00d4ff',Credential:'#ff3d5a','Priv Esc':'#ffaa00',Persistence:'#a855f7',Collection:'#00ff88',Evasion:'#3a6070','C2/Exfil':'#ff6b35'};
+  const max=Math.max(...Object.values(tacs),1);
+  const total=Object.values(tacs).reduce((a,b)=>a+b,0);
+  document.getElementById('chart-badge').textContent=total+' techniques mapped';
+  Object.entries(tacs).forEach(([name,count])=>{
+    const b=document.createElement('div');b.className='chart-bar';
+    b.style.cssText='flex:1;height:0;border-radius:2px 2px 0 0;transition:height 0.8s ease;min-height:4px;cursor:pointer;background:'+(count>0?'linear-gradient(180deg,'+cols[name]+' 0%,rgba(0,212,255,0.08) 100%)':'var(--border)');
+    b.title=name+': '+count;c.appendChild(b);
+    setTimeout(()=>{b.style.height=Math.max((count/max)*85,4)+'px';},100);
+    const l=document.createElement('div');l.className='chart-label';l.textContent=name;lb.appendChild(l);
+  });
+}
+
+// ── BUILD: KILL CHAIN ──
+function updateKillChain(){
+  const s={recon:false,disc:false,cred:false,priv:false,lat:false,col:false,exf:false,eva:false};
+  Object.keys(executedT).forEach(tid=>{
+    const sup=supportedT.find(t=>t.technique===tid);
+    const n=(sup?sup.name:'').toLowerCase();
+    if(n.includes('discovery')||n.includes('scan')||n.includes('enum')) {s.recon=true;s.disc=true;}
+    if(n.includes('credential')||n.includes('password')||n.includes('hash')) s.cred=true;
+    if(n.includes('privilege')||n.includes('escalat')) s.priv=true;
+    if(n.includes('lateral')||n.includes('wmi')||n.includes('remote')) s.lat=true;
+    if(n.includes('collect')||n.includes('data from')) s.col=true;
+    if(n.includes('exfil')||n.includes('c2')||n.includes('proxy')) s.exf=true;
+    if(n.includes('evasion')||n.includes('impair')||n.includes('indicator')) s.eva=true;
+  });
+  const map=[['kc-recon',s.recon],['kc-disc',s.disc],['kc-cred',s.cred],['kc-priv',s.priv],['kc-lat',s.lat],['kc-col',s.col],['kc-exf',s.exf],['kc-eva',s.eva]];
+  let lastDone=-1;
+  map.forEach(([id,done],i)=>{if(done)lastDone=i;});
+  map.forEach(([id,done],i)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className='kc-s';
+    if(i<lastDone) el.classList.add('done');
+    else if(i===lastDone) el.classList.add('active');
+  });
+}
+
+// ── BUILD: VICTIM OUTPUT ──
+function buildVout(){
+  const l=document.getElementById('vout');
+  const all=[];
+  Object.entries(victimOutput).forEach(([host,outputs])=>(outputs||[]).forEach(o=>all.push({...o,host})));
+  all.sort((a,b)=>new Date(b.time||0)-new Date(a.time||0));
+  if(!all.length){l.innerHTML='<div class="empty"><div class="empty-icon">📤</div>No victim output yet</div>';return;}
+  l.innerHTML='';
+  all.slice(0,20).forEach(o=>{
+    const d=document.createElement('div');
+    d.style.cssText='padding:8px;background:var(--bg3);border:1px solid var(--border);border-left:2px solid var(--accent2);border-radius:2px;margin-bottom:7px';
+    const ts=o.time?new Date(o.time).toISOString().slice(11,19):'?';
+    d.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:4px">'
+      +'<span style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--accent2)">'+(o.technique||'?')+'</span>'
+      +'<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--text3)">'+ts+'</span></div>'
+      +'<pre style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--text2);white-space:pre-wrap;line-height:1.5;max-height:90px;overflow:hidden">'+escHtml((o.output||'(no output)').slice(0,300))+'</pre>';
+    l.appendChild(d);
+  });
+}
+
+// ── BUILD: NAVIGATOR ──
+function buildNav(){
+  const g=document.getElementById('nav-grid');g.innerHTML='';
+  supportedT.forEach(t=>{
+    const isExec=!!executedT[t.technique];
+    const d=document.createElement('div');d.className='nav-chip'+(isExec?' exec':'');d.title=t.name;
+    d.innerHTML='<div class="nav-chip-id">'+t.technique+'</div>';
+    g.appendChild(d);
+  });
+}
+
+// ── BUILD: TELEGRAM COMMANDS ──
+function buildTgCmds(){
+  const c=document.getElementById('tg-cmds');c.innerHTML='';
+  TG_CMDS.forEach(cmd=>{
+    const d=document.createElement('div');d.className='tg-cmd';
+    d.innerHTML='<div class="tg-cmd-code">'+cmd.code.slice(0,55)+(cmd.code.length>55?'…':'')+'</div>'
+      +'<div class="tg-cmd-desc">'+cmd.desc+'</div>'
+      +'<div class="tg-copy" onclick="copyCmd(\''+escAttr(cmd.code)+'\',this)">COPY</div>';
+    c.appendChild(d);
+  });
+}
+
+function copyCmd(text,el){
+  navigator.clipboard.writeText(text).then(()=>{
+    el.textContent='✓ COPIED';el.style.color='var(--accent2)';el.style.borderColor='var(--accent2)';
+    setTimeout(()=>{el.textContent='COPY';el.style.color='';el.style.borderColor='';},1800);
+  });
+}
+
+// ── AUTONOMOUS ENGINE ──
+function runAuto(type){
+  const o=document.getElementById('auto-output');
+  const stats=document.getElementById('auto-stats');
+  const lines=AUTO_SEQ[type]||['Running...'];
+  o.innerHTML='';o.style.display='block';stats.style.display='none';
+  let i=0;
+  const iv=setInterval(()=>{
+    if(i<lines.length){
+      const ln=lines[i];
+      const col=ln.includes('SELF-IMPROVED')||ln.includes('✨')||ln.includes('COMPLETE')?'var(--accent2)':
+        ln.includes('🚨')||ln.includes('CRITICAL')?'var(--danger)':
+        ln.includes('QUEUED')||ln.includes('SUCCESS')?'var(--accent2)':
+        ln.startsWith('━')||ln.startsWith('╔')||ln.startsWith('╚')||ln.startsWith('║')?'var(--purple)':'var(--text2)';
+      o.innerHTML+='<div style="color:'+col+';margin:1px 0;line-height:1.5">'+ln+'</div>';
+      i++;o.scrollTop=o.scrollHeight;
+    }else{
+      clearInterval(iv);stats.style.display='grid';
+      const sv=type==='learnall'?24:5,av=type==='learnall'?9:type==='credential'?3:2,imv=type==='learnall'?4:type==='credential'?1:0;
+      document.getElementById('as1').textContent=sv;
+      document.getElementById('as2').textContent=0;
+      document.getElementById('as3').textContent=av;
+      document.getElementById('as4').textContent=imv;
+      addFeedLog('info','autonomous','engine','Auto attack '+type+' complete — '+sv+' techniques, '+av+' AI-generated');
+    }
+  },180);
+}
+
+// ── LOGS ──
+function addFeedLog(level,cat,src,msg){
+  const e={level,category:cat,source:src,msg,ts:now()};
+  renderFeedEntry(e);
+}
+function renderFeedEntry(e){
+  const f=document.getElementById('rt-feed');
+  const d=document.createElement('div');d.className='le '+(e.level||'info');
+  d.innerHTML='<span class="le-time">'+(e.ts||now())+'</span><span class="le-lvl">'+(e.level||'info')+'</span><span class="le-msg">'+(e.msg||'')+'</span>';
+  f.insertBefore(d,f.firstChild);
+  while(f.children.length>100) f.removeChild(f.lastChild);
+}
+function prependLogEl(c,e){
+  if(!c)return;
+  const d=document.createElement('div');d.className='le '+(e.level||'info');
+  d.innerHTML='<span class="le-time">'+(e.ts||now())+'</span><span class="le-lvl">'+(e.level||'info')+'</span><span class="le-msg">['+e.category+'] '+e.msg+'</span>';
+  c.insertBefore(d,c.firstChild);
+}
+function filterLogs(){lastLogId=0;logEntries=[];const c=document.getElementById('logs-full');if(c)c.innerHTML='';fetchLogs();}
+function rebuildLogs(){const c=document.getElementById('logs-full');if(!c)return;c.innerHTML='';logEntries.forEach(e=>prependLogEl(c,e));}
+
+// ── VIEWS ──
+function showView(name,el){
+  document.querySelectorAll('[id^="view-"]').forEach(v=>v.style.display='none');
+  document.getElementById('view-'+name).style.display='block';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(name==='attack') buildGrid();
+  if(name==='apt')    buildAptFull();
+  if(name==='logs')   rebuildLogs();
+  if(name==='telegram') buildTgCmds();
+}
+function rtab(name,el){
+  ['feed','output','nav'].forEach(t=>{document.getElementById('rt-'+t).style.display='none';});
+  document.getElementById('rt-'+name).style.display=name==='feed'?'flex':'block';
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(name==='output') buildVout();
+  if(name==='nav')    buildNav();
+}
+
+// ── CONSOLE ──
+function execCmd(){
+  const inp=document.getElementById('cmd');
+  const v=inp.value.trim().toLowerCase();inp.value='';if(!v)return;
+  addFeedLog('info','cmd','operator','> '+v);
+  if(v.match(/^run t[\d.]+/i)){const tid=v.split(' ')[1].toUpperCase();showView('attack',null);buildGrid();executeAttack(tid);}
+  else if(v==='apt'||v==='apt report'){showView('apt',null);buildAptFull();}
+  else if(v==='health'||v==='status'){fetchHealth().then(()=>showBanner('Health check done','ok'));}
+  else if(v==='reset'){openModal('reset');}
+  else if(v==='pdf'||v==='report'){openModal('pdf');}
+  else if(v==='refresh'){refreshAll();}
+  else if(v==='list'){showView('attack',null);buildGrid();}
+  else if(v==='logs'){showView('logs',null);rebuildLogs();}
+  else if(v==='tg'||v==='telegram'){showView('telegram',null);buildTgCmds();}
+  else if(v==='oc'||v==='openclaw'){showView('openclaw',null);}
+  else if(v==='auto'||v.startsWith('auto ')){showView('autonomous',null);runAuto(v.split(' ')[1]||'discovery');}
+  else{addFeedLog('warn','cmd','c2','Unknown: '+v+' — try: run T1082, apt, health, logs, reset, pdf, tg, auto, oc');}
+}
+
+// ── EXPORT LAYER ──
+function exportLayer(){
+  const execs=Object.keys(executedT);
+  const layer={name:'WebSecSim OpenClaw Session',versions:{attack:'14',navigator:'4.9',layer:'4.5'},domain:'enterprise-attack',techniques:execs.map(tid=>({techniqueID:tid,score:executedT[tid].count||1,color:'#00ff88',enabled:true}))};
+  const b=new Blob([JSON.stringify(layer,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='websecssim-openclaw-layer.json';a.click();
+  addFeedLog('info','export','navigator','Navigator layer exported — '+execs.length+' techniques');
+}
+
+// ── TOOLTIP ──
+function tip(e,title,body){
+  const t=document.getElementById('tooltip');
+  document.getElementById('tt').textContent=title;document.getElementById('tb').textContent=body;
+  t.classList.add('visible');t.style.left=(e.pageX+12)+'px';t.style.top=(e.pageY-10)+'px';
+}
+
+// ── PDF ──
+async function generatePDF(){
+  const {jsPDF}=window.jspdf;
+  const prog=document.getElementById('pdf-prog');
+  const fill=document.getElementById('pdf-fill');
+  const ptxt=document.getElementById('pdf-txt');
+  prog.style.display='block';
+  const steps=[{p:15,t:'Fetching live API data...'},{p:35,t:'Compiling techniques...'},{p:55,t:'Processing APT correlation...'},{p:70,t:'Building OpenClaw section...'},{p:85,t:'Rendering PDF...'},{p:100,t:'Done!'}];
+  for(const s of steps){fill.style.width=s.p+'%';ptxt.textContent=s.t;await new Promise(r=>setTimeout(r,260));}
+
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=20;let y=M;
+  const now2=new Date();
+  const execs=Object.keys(executedT);
+
+  function chk(n){if(y+n>285){doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');y=M;}}
+  function hdr(t,s){doc.setFillColor(2,6,8);doc.rect(0,0,210,18,'F');doc.setFillColor(0,212,255);doc.rect(0,18,210,1,'F');doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(0,212,255);doc.text(t,M,12);if(s){doc.setFontSize(8);doc.setTextColor(106,154,170);doc.text(s,M,16.5);}doc.setFontSize(8);doc.setTextColor(58,96,112);doc.text('CONFIDENTIAL — WebSecSim OpenClaw C2 Intelligence Report',W/2,12,{align:'center'});y=26;}
+  function sec(t){chk(12);doc.setFillColor(13,28,33);doc.rect(M-2,y-4,W-2*M+4,9,'F');doc.setDrawColor(0,212,255);doc.setLineWidth(0.3);doc.line(M-2,y-4,M-2,y+5);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(0,212,255);doc.text(t.toUpperCase(),M+2,y+1);y+=11;}
+  function row(k,v,c){chk(7);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(106,154,170);doc.text(k+':',M,y);doc.setFont('helvetica','bold');if(c)doc.setTextColor(...c);else doc.setTextColor(200,232,240);doc.text(String(v),M+52,y);y+=6;}
+  function body(t,c){chk(6);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...(c||[200,232,240]));const ls=doc.splitTextToSize(t,W-2*M);doc.text(ls,M,y);y+=ls.length*5+1;}
+
+  // Cover
+  doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');
+  doc.setFillColor(0,212,255);doc.rect(0,0,210,3,'F');
+  doc.setFillColor(0,212,255);doc.circle(105,65,18,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(2,6,8);doc.text('C2',105,68,{align:'center'});
+  doc.setFontSize(26);doc.setTextColor(0,212,255);doc.text('WEBSECSSIM',105,98,{align:'center'});
+  doc.setFontSize(11);doc.setTextColor(200,232,240);doc.text('OpenClaw C2 Intelligence Platform',105,108,{align:'center'});
+  doc.setFontSize(9);doc.setTextColor(106,154,170);doc.text('MITRE ATT&CK · GPT-4o mini · Telegram · Autonomous Engine',105,116,{align:'center'});
+  doc.setFillColor(0,212,255);doc.rect(40,124,130,0.5,'F');
+  doc.setFillColor(13,28,33);doc.rect(30,132,150,52,'F');doc.setDrawColor(26,74,90);doc.setLineWidth(0.3);doc.rect(30,132,150,52,'S');
+  let sy=144;
+  [['Generated',now2.toUTCString()],['Backend',CFG.url],['OpenClaw','v2026.3.13 — Telegram Bot'],['AI Operator','GPT-4o mini (OpenAI)'],['C2 AI','llama-3.3-70b (Groq)'],['Victim','websecsim-victim-c2 (Ubuntu 22.04)']].forEach(([k,v])=>{
+    doc.setFontSize(8);doc.setTextColor(106,154,170);doc.text(k+':',38,sy);doc.setTextColor(200,232,240);doc.text(v,88,sy);sy+=7;
+  });
+  const sts=[{l:'Executed',v:execs.length,c:[0,255,136]},{l:'APT Matches',v:aptMatches.length,c:[0,212,255]},{l:'Alerts',v:critCount,c:[255,61,90]},{l:'OC Skills',v:4,c:[255,107,53]}];
+  sts.forEach((s,i)=>{const bx=17+i*48;doc.setFillColor(13,28,33);doc.rect(bx,202,44,22,'F');doc.setDrawColor(...s.c);doc.setLineWidth(0.4);doc.rect(bx,202,44,22,'S');doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(...s.c);doc.text(String(s.v),bx+22,212,{align:'center'});doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(106,154,170);doc.text(s.l,bx+22,219,{align:'center'});});
+  doc.setFillColor(0,212,255);doc.rect(0,294,210,3,'F');
+  doc.setFontSize(7);doc.setTextColor(58,96,112);doc.text('LIVE DATA — '+now2.toUTCString(),105,291,{align:'center'});
+
+  // P2: Summary
+  doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');
+  hdr('EXECUTIVE SUMMARY','Live session overview');
+  sec('Session Info');
+  row('Backend URL',CFG.url);row('Generated',now2.toUTCString());row('Techniques Executed',execs.length,[0,255,136]);
+  row('APT Matches',aptMatches.length,[0,212,255]);row('Critical Alerts',critCount,[255,61,90]);
+  row('MITRE Database',healthData.technique_count||835);row('APT Groups Loaded',healthData.apt_groups_loaded||168);
+  y+=6;sec('OpenClaw Integration');
+  body('This session is controlled via OpenClaw v2026.3.13 running on Kali Linux. Attack commands are dispatched through the c2_operator skill via Telegram. The autonomous engine uses GPT-4o mini to select and generate MITRE ATT&CK technique commands beyond the 35 hardcoded standard techniques, enabling access to all 835 techniques in the MITRE database.');
+  y+=4;
+  if(aptMatches.length>0){body('APT correlation identified '+aptMatches.length+' matching threat groups. Strongest match: '+aptMatches[0].name+' ('+aptMatches[0].group_id+') with '+aptMatches[0].score_pct+'% technique overlap.');}
+
+  // P3: OpenClaw section
+  if(document.getElementById('po-oc').checked){
+    doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');
+    hdr('OPENCLAW INTEGRATION','Skill-based C2 control via Telegram');
+    sec('Stack Architecture');
+    [['OpenClaw Version','2026.3.13 (npm global install)'],['Gateway','ws://127.0.0.1:18789 (loopback, token auth)'],['Skill Name','c2_operator'],['Channel','Telegram Bot API'],['Operator AI','GPT-4o mini — OpenAI'],['C2 Backend AI','llama-3.3-70b-versatile — Groq'],['Tools Profile','full (exec tool enabled)'],['Hooks','session-memory (active)']].forEach(([k,v])=>row(k,v));
+    y+=6;sec('Skill Files');
+    [['SKILL.md','Natural language trigger definitions for all 4 integration points'],['c2.js','Core C2 helper — 12 commands (run, list, agents, output, reset, alerts, explain, analyze, hunt, chat, apt, health)'],['run.sh','Environment wrapper with credentials baked in — called by OpenClaw exec tool'],['dynamic-attack.js','Autonomous engine — accesses all 835 MITRE techniques via GPT-4o mini'],['dynamic.sh','Autonomous engine wrapper — auto · smart · learnall · learned · stats'],['chains.sh','Pre-built attack chains — recon · privesc · persist · fullattack'],['start-c2.sh','Single startup script — Docker + FastAPI + OpenClaw gateway'],].forEach(([f,d])=>{chk(10);doc.setFont('courier','bold');doc.setFontSize(9);doc.setTextColor(0,212,255);doc.text(f,M,y);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(200,232,240);const ls=doc.splitTextToSize(d,W-2*M-32);doc.text(ls,M+32,y);y+=Math.max(ls.length*4.5,6)+3;});
+    y+=4;sec('4 Integration Points');
+    [['Command Dispatcher','Send run T1082, list techniques, show agents from Telegram — routes to /api/attack/{t}','var(--accent)'],['Live Alert Push','OpenClaw cron polls /api/logs every 30s — critical/alert events pushed to DM automatically','var(--danger)'],['AI Analyst on Demand','explain T1003, threat hunt, analyze output — GPT-4o mini streams analysis to Telegram','var(--purple)'],['APT Correlation Reports','Daily scheduled brief at 08:00 or on-demand — /api/apt/correlate → formatted message','var(--accent2)']].forEach(([name,desc])=>{chk(14);doc.setFillColor(13,28,33);doc.rect(M,y-3,W-2*M,10,'F');doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(200,232,240);doc.text(name,M+3,y+2);y+=11;body(desc,[106,154,170]);y+=2;});
+  }
+
+  // P4: Techniques
+  if(document.getElementById('po-exec').checked && execs.length>0){
+    doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');
+    hdr('EXECUTED TECHNIQUES','Live from /api/navigator/layer');
+    sec('Technique Execution Table');
+    chk(10);doc.setFillColor(0,212,255);doc.rect(M,y-3,W-2*M,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(2,6,8);doc.text('TECHNIQUE ID',M+2,y+2);doc.text('NAME',M+32,y+2);doc.text('COUNT',M+148,y+2);doc.text('STATUS',M+164,y+2);y+=9;
+    execs.forEach((tid,i)=>{chk(8);const sup=supportedT.find(t=>t.technique===tid);const name=sup?sup.name:tid;const count=executedT[tid].count||1;doc.setFillColor(i%2===0?13:10,i%2===0?28:22,i%2===0?33:27);doc.rect(M,y-3,W-2*M,7,'F');doc.setFont('courier','bold');doc.setFontSize(8);doc.setTextColor(0,255,136);doc.text(tid,M+2,y+1);doc.setFont('helvetica','normal');doc.setTextColor(200,232,240);doc.text(name.slice(0,38),M+32,y+1);doc.setTextColor(255,170,0);doc.text('×'+count,M+150,y+1);doc.setFillColor(0,255,136);doc.rect(M+164,y-2,22,5,'F');doc.setFont('helvetica','bold');doc.setTextColor(2,6,8);doc.setFontSize(7);doc.text('EXECUTED',M+175,y+1.5,{align:'center'});y+=7;});
+  }
+
+  // P5: APT
+  if(document.getElementById('po-apt').checked && aptMatches.length>0){
+    doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');
+    hdr('APT GROUP CORRELATION','Live from /api/apt/correlate');
+    sec('Matched Threat Actors');
+    body('Based on '+execs.length+' executed techniques, correlation against '+( healthData.apt_groups_loaded||168)+' MITRE ATT&CK intrusion sets:');y+=4;
+    aptMatches.forEach((g,i)=>{chk(24);const rc=[[255,61,90],[255,170,0],[0,212,255],[168,85,247],[0,255,136]][Math.min(i,4)];doc.setFillColor(13,28,33);doc.rect(M,y-2,W-2*M,20,'F');doc.setFillColor(...rc);doc.rect(M,y-2,3,20,'F');doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(200,232,240);doc.text(g.name,M+8,y+5);doc.setFontSize(8);doc.setTextColor(106,154,170);doc.text(g.group_id+' — '+(g.aliases||[]).slice(0,2).join(', '),M+8,y+10);doc.setFontSize(8);doc.setTextColor(0,212,255);doc.text('Matched: '+(g.matched_techniques||[]).join(', '),M+8,y+15);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(...rc);doc.text(g.score_pct+'%',W-M-16,y+9,{align:'right'});doc.setFontSize(8);doc.setTextColor(106,154,170);doc.text(g.overlap_count+'/'+g.group_total,W-M-16,y+15,{align:'right'});y+=22;});
+  }
+
+  // P6: Output
+  if(document.getElementById('po-output').checked){
+    const all=[];Object.entries(victimOutput).forEach(([h,outs])=>(outs||[]).forEach(o=>all.push({...o,host:h})));
+    if(all.length>0){doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');hdr('VICTIM COMMAND OUTPUT','Live from /api/output/{host}');sec('Command Execution Results');all.slice(0,8).forEach(o=>{chk(30);doc.setFillColor(6,13,16);doc.rect(M,y-3,W-2*M,8,'F');doc.setDrawColor(0,255,136);doc.setLineWidth(0.3);doc.rect(M,y-3,W-2*M,8,'S');doc.setFont('courier','bold');doc.setFontSize(9);doc.setTextColor(0,255,136);doc.text(o.technique||'?',M+3,y+2);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(106,154,170);doc.text(o.time||'',M+35,y+2);y+=9;const t=(o.output||'(no output)').slice(0,300);const ls=doc.splitTextToSize(t,W-2*M-6);const bh=ls.length*4+6;chk(bh+4);doc.setFillColor(4,10,12);doc.rect(M,y-2,W-2*M,bh,'F');doc.setDrawColor(14,48,64);doc.rect(M,y-2,W-2*M,bh,'S');doc.setFont('courier','normal');doc.setFontSize(7);doc.setTextColor(100,200,180);doc.text(ls,M+3,y+3);y+=bh+5;});}
+  }
+
+  // P7: Logs
+  if(document.getElementById('po-logs').checked){
+    const cLogs=logEntries.filter(e=>e.level==='critical'||e.level==='alert').slice(0,20);
+    doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');hdr('SECURITY EVENTS','Live from /api/logs');sec('Critical & Alert Events');
+    if(!cLogs.length){body('No critical or alert events recorded.',[106,154,170]);}
+    else{cLogs.forEach(e=>{chk(10);const lc=e.level==='critical'?[255,61,90]:[255,170,0];doc.setFillColor(13,28,33);doc.rect(M,y-3,W-2*M,9,'F');doc.setFillColor(...lc);doc.rect(M,y-3,3,9,'F');doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...lc);doc.text(e.level.toUpperCase(),M+6,y+1);doc.setFont('helvetica','normal');doc.setTextColor(200,232,240);doc.text((e.msg||'').slice(0,80),M+28,y+1);doc.setTextColor(58,96,112);doc.text(e.ts||'',W-M-20,y+1);doc.setTextColor(106,154,170);doc.setFontSize(7);doc.text('['+e.category+'] src:'+e.source,M+6,y+6);y+=10;});}
+  }
+
+  // Final page
+  doc.addPage();doc.setFillColor(2,6,8);doc.rect(0,0,210,297,'F');
+  hdr('RECOMMENDATIONS & ABOUT');sec('Immediate Actions');
+  ['Rotate all exposed credentials — especially root, ubuntu, and service accounts','Enable auditd monitoring on /etc/shadow, /etc/passwd, and ~/.ssh/authorized_keys','Restrict sudo access — implement PAM with least-privilege policy','Deploy endpoint detection for credential dumping and LSASS protection','Configure network segmentation to block discovered lateral movement paths','Review all crontabs and systemd services for persistence mechanisms','Harden SSH — disable root login, enforce key-based authentication','Monitor OpenClaw skill commands in session logs for audit trail'].forEach((r,i)=>{chk(10);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0,212,255);doc.text((i+1)+'.',M,y);doc.setTextColor(200,232,240);const ls=doc.splitTextToSize(r,W-2*M-12);doc.text(ls,M+8,y);y+=ls.length*5+3;});
+  y+=8;sec('Platform Information');
+  [['Platform','WebSecSim C2 Simulation Platform v3.0'],['Control','OpenClaw 2026.3.13 + Telegram Bot API'],['Operator AI','GPT-4o mini — OpenAI'],['C2 Backend AI','llama-3.3-70b-versatile — Groq'],['Victim','Docker — Ubuntu 22.04.5 LTS x86_64 Kernel 6.8.11'],['MITRE','GitHub STIX — enterprise-attack — 835 techniques'],['APT Data','168 intrusion sets with technique mappings'],['Backend','FastAPI + Python — '+CFG.url]].forEach(([k,v])=>row(k,v));
+  y+=6;body('This report is generated from a controlled lab simulation environment. All techniques were executed against isolated Docker containers. For educational and research purposes only.',[255,170,0]);
+  doc.setFillColor(0,212,255);doc.rect(0,294,210,3,'F');doc.setFontSize(7);doc.setTextColor(58,96,112);doc.text('WebSecSim OpenClaw C2 — '+now2.toUTCString(),105,291,{align:'center'});
+
+  const fname='WebSecSim-OpenClaw-Report-'+now2.toISOString().slice(0,10)+'.pdf';
+  doc.save(fname);
+  await new Promise(r=>setTimeout(r,300));
+  closeModal('pdf');
+  addFeedLog('info','report','system','PDF downloaded: '+fname+' ('+doc.internal.getNumberOfPages()+' pages)');
+  flash('PDF REPORT DOWNLOADED','var(--purple)');
+}
+
+// ── UTILS ──
+function now(){return new Date().toISOString().slice(11,19);}
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(t){return t.replace(/'/g,"\\'");}
+function setVal(id,val){const el=document.getElementById(id);if(el&&el.textContent!==String(val)){el.textContent=val;el.classList.add('pulse');setTimeout(()=>el.classList.remove('pulse'),500);}}
+function timeAgo(ts){if(!ts)return '?';const d=(Date.now()-new Date(ts))/1000;if(d<60)return Math.floor(d)+'s ago';if(d<3600)return Math.floor(d/60)+'m ago';return Math.floor(d/3600)+'h ago';}
+
+// ── AUTO-REFRESH TIMERS ──
+setInterval(async()=>{await fetchHealth();await fetchAgents();updateKillChain();buildNav();},10000);
+setInterval(async()=>{await fetchLogs();},5000);
+setInterval(async()=>{await fetchExecuted();await fetchAPT();buildExecList();buildAptMini();buildChart();if(document.getElementById('view-apt').style.display!=='none')buildAptFull();},15000);
+setInterval(async()=>{await fetchAgents();await fetchOutput();if(document.getElementById('rt-output').style.display!=='none')buildVout();},20000);
+
+// ── STARTUP ──
+(async()=>{
+  
+  await refreshAll();
+  buildTgCmds();
+})();
+</script>
+</body>
+</html>

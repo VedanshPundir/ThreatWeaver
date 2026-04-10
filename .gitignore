@@ -1,0 +1,22 @@
+# Never commit these
+*.env
+.env
+secrets.txt
+*token*
+*password*
+
+# OpenClaw runtime files
+*.log
+*.jsonl
+*.bak
+learned_techniques.json
+c2_token.txt
+c2_last_log_id.txt
+
+# Node
+node_modules/
+npm-debug.log
+
+# OS
+.DS_Store
+*.swp
