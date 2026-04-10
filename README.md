@@ -1,4 +1,4 @@
-# WebSecSim C2 — OpenClaw Integration
+# ThreatWeaver C2 — OpenClaw Integration
 
 AI-powered C2 simulation platform integrating OpenClaw with MITRE ATT&CK,
 GPT-4o mini, and autonomous attack execution via Telegram.
