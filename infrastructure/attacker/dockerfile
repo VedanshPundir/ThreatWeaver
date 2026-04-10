@@ -1,0 +1,40 @@
+# 1. Use NVIDIA CUDA Base Image (GPU Power)
+FROM nvidia/cuda:12.2.0-base-ubuntu22.04
+
+# 2. Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 3. Install The "Big 5" Cyber Weapons & Dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    git \
+    curl \
+    wget \
+    iputils-ping \
+    netcat \
+    sshpass \
+    nmap \
+    hashcat \
+    hydra \
+    john \
+    sqlmap \
+    && rm -rf /var/lib/apt/lists/*
+
+# 4. Install Python Libraries
+RUN pip3 install atomic-operator pyyaml
+
+# 5. Download Atomic Red Team Library (The "Brains" for T1087)
+WORKDIR /opt
+RUN git clone https://github.com/redcanaryco/atomic-red-team.git
+
+# 6. Manually Download "RockYou.txt" (The Ammo)
+RUN mkdir -p /usr/share/wordlists && \
+    wget -q -O /usr/share/wordlists/rockyou.txt https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt
+
+# 7. Set Workspace & Copy Scripts
+WORKDIR /app
+COPY . .
+
+# 8. Keep Alive
+CMD ["tail", "-f", "/dev/null"]
