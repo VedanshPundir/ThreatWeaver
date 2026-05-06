@@ -132,13 +132,6 @@ OPENAI_API_KEY=sk-your-openai-key
 # AI — Fallback (free)
 GROQ_API_KEY=gsk_your-groq-key
 GROQ_MODEL=llama-3.3-70b-versatile
-
-# Email reports
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your@gmail.com
-SMTP_PASS=your-app-password
-REPORT_TO=recipient@email.com
 ```
 
 ---
