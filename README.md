@@ -91,8 +91,8 @@ OpenClaw Gateway (GPT-4o-mini)
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/threatweaver-c2
-cd threatweaver-c2
+git clone https://github.com/VedanshPundir/ThreatWeaver.git
+cd ThreatWeaver
 
 # 2. Install OpenClaw globally
 npm install -g openclaw@latest
