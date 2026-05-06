@@ -1,0 +1,2241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebSecSim — OpenClaw C2 Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM
+═══════════════════════════════════════════════ */
+:root {
+  /* Core Palette */
+  --bg-base:    #080c10;
+  --bg-surface: #0d1117;
+  --bg-raised:  #111720;
+  --bg-overlay: #161e29;
+  --bg-hover:   #1a2535;
+
+  /* Borders */
+  --border-subtle:  rgba(255,255,255,0.04);
+  --border-default: rgba(255,255,255,0.08);
+  --border-strong:  rgba(255,255,255,0.14);
+  --border-focus:   rgba(56,189,248,0.5);
+
+  /* Brand Colors */
+  --cyan:     #38bdf8;
+  --cyan-dim: rgba(56,189,248,0.12);
+  --cyan-glow:rgba(56,189,248,0.25);
+  --green:    #4ade80;
+  --green-dim:rgba(74,222,128,0.1);
+  --red:      #f87171;
+  --red-dim:  rgba(248,113,113,0.1);
+  --amber:    #fbbf24;
+  --amber-dim:rgba(251,191,36,0.1);
+  --violet:   #a78bfa;
+  --violet-dim:rgba(167,139,250,0.1);
+  --orange:   #fb923c;
+  --orange-dim:rgba(251,146,60,0.1);
+
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'Space Grotesk', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* Text */
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #475569;
+  --text-faint:     #2d3748;
+
+  /* Sizing */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --header-h: 56px;
+  --sidebar-w: 228px;
+  --rp-w: 284px;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { height: 100%; }
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── SCANLINES OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+header {
+  flex-shrink: 0;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 20px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  position: relative;
+  z-index: 100;
+}
+
+/* accent top line */
+header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--cyan) 0%, transparent 60%);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-right: 28px;
+}
+
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  background: var(--cyan);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--bg-base);
+  letter-spacing: 0;
+  animation: hexPulse 4s ease-in-out infinite;
+}
+@keyframes hexPulse {
+  0%,100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 20px var(--cyan-glow); }
+}
+
+.logo-text-group { line-height: 1; }
+.logo-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: var(--text-primary);
+}
+.logo-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+
+/* header divider */
+.hdr-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border-default);
+  margin: 0 20px;
+}
+
+/* status pills */
+.hdr-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.pill-cyan   { background: var(--cyan-dim);   color: var(--cyan);   border-color: rgba(56,189,248,0.2); }
+.pill-cyan .pill-dot   { background: var(--cyan); }
+.pill-green  { background: var(--green-dim);  color: var(--green);  border-color: rgba(74,222,128,0.2); }
+.pill-green .pill-dot  { background: var(--green); }
+.pill-red    { background: var(--red-dim);    color: var(--red);    border-color: rgba(248,113,113,0.2); }
+.pill-red .pill-dot    { background: var(--red); }
+.pill-violet { background: var(--violet-dim); color: var(--violet); border-color: rgba(167,139,250,0.2); }
+.pill-violet .pill-dot { background: var(--violet); }
+.pill-orange { background: var(--orange-dim); color: var(--orange); border-color: rgba(251,146,60,0.2); }
+.pill-orange .pill-dot { background: var(--orange); }
+
+/* clock */
+.hdr-clock {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  padding: 0 8px;
+  margin-left: auto;
+}
+
+/* header actions */
+.hdr-actions { display: flex; align-items: center; gap: 6px; margin-left: 16px; }
+
+.hdr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.btn-refresh { background: var(--cyan-dim); color: var(--cyan); border-color: rgba(56,189,248,0.25); }
+.btn-refresh:hover { background: rgba(56,189,248,0.22); border-color: var(--cyan); }
+.btn-cfg { background: transparent; color: var(--text-secondary); border-color: var(--border-default); }
+.btn-cfg:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.btn-pdf { background: var(--violet-dim); color: var(--violet); border-color: rgba(167,139,250,0.25); }
+.btn-pdf:hover { background: rgba(167,139,250,0.22); border-color: var(--violet); }
+.btn-reset { background: var(--red-dim); color: var(--red); border-color: rgba(248,113,113,0.25); }
+.btn-reset:hover { background: rgba(248,113,113,0.22); border-color: var(--red); }
+
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════════ */
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr var(--rp-w);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+.sidebar {
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sb-section-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 18px 16px 6px;
+}
+
+/* nav items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all 0.15s;
+  position: relative;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+}
+.nav-item.active {
+  color: var(--cyan);
+  background: var(--cyan-dim);
+  border-left-color: var(--cyan);
+}
+.nav-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 20px;
+}
+.nb-red    { background: rgba(248,113,113,0.15); color: var(--red);    animation: badgeGlow 2s ease-in-out infinite; }
+.nb-green  { background: rgba(74,222,128,0.15);  color: var(--green); }
+.nb-violet { background: rgba(167,139,250,0.15); color: var(--violet); }
+.nb-orange { background: rgba(251,146,60,0.15);  color: var(--orange); }
+@keyframes badgeGlow {
+  0%,100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 8px rgba(248,113,113,0.4); }
+}
+
+/* sidebar cards */
+.sb-card {
+  margin: 4px 10px;
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+.sb-card-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+.sb-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+.sb-row-label { color: var(--text-muted); font-weight: 400; }
+.sb-row-val { font-family: var(--font-mono); font-size: 10px; color: var(--cyan); }
+
+/* sidebar action buttons */
+.sb-actions { padding: 4px 10px 8px; display: flex; flex-direction: column; gap: 4px; }
+.sb-action-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid;
+}
+.sba-pdf    { background: var(--violet-dim); color: var(--violet); border-color: rgba(167,139,250,0.2); }
+.sba-pdf:hover { background: rgba(167,139,250,0.2); }
+.sba-nav    { background: var(--cyan-dim);   color: var(--cyan);   border-color: rgba(56,189,248,0.2); }
+.sba-nav:hover { background: rgba(56,189,248,0.2); }
+.sba-reset  { background: var(--red-dim);    color: var(--red);    border-color: rgba(248,113,113,0.2); }
+.sba-reset:hover { background: rgba(248,113,113,0.2); }
+.sba-tg     { background: rgba(41,182,246,0.08); color: #38b2f8; border-color: rgba(41,182,246,0.2); }
+.sba-tg:hover { background: rgba(41,182,246,0.18); }
+
+/* ═══════════════════════════════════════════════
+   CONTENT AREA
+═══════════════════════════════════════════════ */
+.content {
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--bg-base);
+}
+
+/* ═══════════════════════════════════════════════
+   PANEL SYSTEM
+═══════════════════════════════════════════════ */
+.panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-raised);
+}
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+.panel-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.panel-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--green);
+  letter-spacing: 0.06em;
+}
+.panel-live::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   STAT CARDS
+═══════════════════════════════════════════════ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  transform-origin: left;
+}
+.stat-card:hover { transform: translateY(-2px); }
+.stat-card:hover::after { transform: scaleX(1); }
+.stat-card:hover { border-color: var(--border-strong); }
+
+.stat-card.c-cyan  { border-top: 1px solid rgba(56,189,248,0.3);  } .stat-card.c-cyan::after  { background: var(--cyan); }
+.stat-card.c-green { border-top: 1px solid rgba(74,222,128,0.3);  } .stat-card.c-green::after { background: var(--green); }
+.stat-card.c-red   { border-top: 1px solid rgba(248,113,113,0.3); } .stat-card.c-red::after   { background: var(--red); }
+.stat-card.c-amber { border-top: 1px solid rgba(251,191,36,0.3);  } .stat-card.c-amber::after { background: var(--amber); }
+.stat-card.c-violet{ border-top: 1px solid rgba(167,139,250,0.3); } .stat-card.c-violet::after{ background: var(--violet); }
+.stat-card.c-orange{ border-top: 1px solid rgba(251,146,60,0.3);  } .stat-card.c-orange::after{ background: var(--orange); }
+
+.sc-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.sc-val {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+  transition: color 0.3s;
+}
+.c-cyan  .sc-val { color: var(--cyan); }
+.c-green .sc-val { color: var(--green); }
+.c-red   .sc-val { color: var(--red); }
+.c-amber .sc-val { color: var(--amber); }
+.c-violet.sc-val { color: var(--violet); }
+.c-orange .sc-val { color: var(--orange); }
+.c-violet .sc-val { color: var(--violet); }
+.c-orange .sc-val { color: var(--orange); }
+.sc-sub { font-size: 10.5px; color: var(--text-muted); font-weight: 400; }
+
+/* ═══════════════════════════════════════════════
+   KILL CHAIN
+═══════════════════════════════════════════════ */
+.kill-chain {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 0;
+}
+.kc-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  position: relative;
+}
+.kc-step::after {
+  content: '';
+  position: absolute;
+  top: 19px;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: var(--border-default);
+  z-index: 0;
+}
+.kc-step:last-child::after { display: none; }
+
+.kc-step.done::after  { background: linear-gradient(90deg, var(--cyan), var(--border-default)); }
+.kc-step.active::after { background: linear-gradient(90deg, var(--green), var(--border-default)); }
+
+.kc-icon {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-raised);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s;
+}
+.kc-step.done  .kc-icon { border-color: var(--cyan);  background: var(--cyan-dim);  }
+.kc-step.active .kc-icon {
+  border-color: var(--green); background: var(--green-dim);
+  animation: kcPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(74,222,128,0.3);
+}
+@keyframes kcPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+}
+
+.kc-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+.kc-step.done  .kc-label { color: var(--cyan); }
+.kc-step.active .kc-label { color: var(--green); }
+
+/* ═══════════════════════════════════════════════
+   GRIDS
+═══════════════════════════════════════════════ */
+.two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* ═══════════════════════════════════════════════
+   EXECUTED TECHNIQUES LIST
+═══════════════════════════════════════════════ */
+.exec-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.exec-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--green);
+  border-radius: var(--radius-sm);
+}
+.exec-tid {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--green);
+  min-width: 52px;
+}
+.exec-name { flex: 1; font-size: 11.5px; color: var(--text-secondary); font-weight: 400; }
+.exec-badge {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  background: rgba(74,222,128,0.12);
+  color: var(--green);
+  padding: 2px 6px;
+  border-radius: 20px;
+}
+.exec-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   APT LIST
+═══════════════════════════════════════════════ */
+.apt-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.apt-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+  cursor: default;
+}
+.apt-row:hover { border-color: var(--border-strong); }
+.apt-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.apt-row:nth-child(1)::before { background: var(--red); }
+.apt-row:nth-child(2)::before { background: var(--amber); }
+.apt-row:nth-child(3)::before { background: var(--cyan); }
+.apt-row:nth-child(4)::before { background: var(--violet); }
+
+.apt-rank {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-faint);
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.apt-info { flex: 1; min-width: 0; }
+.apt-name {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.apt-alias {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.apt-matched {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--green);
+}
+.apt-bar-track {
+  height: 2px;
+  background: var(--border-default);
+  border-radius: 2px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.apt-bar-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+.apt-score { text-align: right; flex-shrink: 0; }
+.apt-pct {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.apt-row:nth-child(1) .apt-pct { color: var(--red); }
+.apt-row:nth-child(2) .apt-pct { color: var(--amber); }
+.apt-row:nth-child(3) .apt-pct { color: var(--cyan); }
+.apt-row:nth-child(4) .apt-pct { color: var(--violet); }
+.apt-ov {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════
+   CHART
+═══════════════════════════════════════════════ */
+.chart-area {
+  padding: 14px 16px 0;
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.chart-bar {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+  transition: height 0.9s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+  position: relative;
+}
+.chart-bar:hover { opacity: 0.85; }
+.chart-labels {
+  display: flex;
+  padding: 4px 16px 12px;
+  gap: 6px;
+}
+.chart-label {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════
+   OPENCLAW HUB
+═══════════════════════════════════════════════ */
+.oc-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px;
+}
+.oc-card {
+  padding: 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.oc-card:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.oc-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.oc-card.tg::before   { background: var(--cyan); }
+.oc-card.ai::before   { background: var(--violet); }
+.oc-card.auto::before { background: var(--green); }
+.oc-card.skill::before{ background: var(--orange); }
+
+.oc-icon { font-size: 22px; margin-bottom: 10px; }
+.oc-card-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.oc-card.tg .oc-card-label   { color: var(--cyan); }
+.oc-card.ai .oc-card-label   { color: var(--violet); }
+.oc-card.auto .oc-card-label { color: var(--green); }
+.oc-card.skill .oc-card-label{ color: var(--orange); }
+
+.oc-stat {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.oc-card.tg   .oc-stat { color: var(--cyan); }
+.oc-card.ai   .oc-stat { color: var(--violet); }
+.oc-card.auto .oc-stat { color: var(--green); }
+.oc-card.skill .oc-stat{ color: var(--orange); }
+.oc-sub { font-size: 10.5px; color: var(--text-muted); line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════
+   ATTACK GRID
+═══════════════════════════════════════════════ */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 14px;
+}
+.tc {
+  padding: 9px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.tc:hover { border-color: var(--cyan); background: var(--cyan-dim); transform: translateY(-1px); }
+.tc.executed { border-color: rgba(74,222,128,0.3); background: var(--green-dim); }
+.tc.queued { border-color: var(--amber); animation: qPulse 1s ease-in-out infinite; }
+@keyframes qPulse {
+  0%,100% { border-color: rgba(251,191,36,0.3); }
+  50% { border-color: var(--amber); }
+}
+.tc-id {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--cyan);
+  margin-bottom: 3px;
+}
+.tc.executed .tc-id { color: var(--green); }
+.tc.queued .tc-id { color: var(--amber); }
+.tc-name { font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-sub { font-family: var(--font-mono); font-size: 8.5px; color: var(--text-muted); margin-top: 3px; }
+
+/* ═══════════════════════════════════════════════
+   AUTONOMOUS ENGINE
+═══════════════════════════════════════════════ */
+.auto-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 14px;
+}
+.auto-btn {
+  padding: 14px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: left;
+}
+.auto-btn:hover { border-color: var(--green); background: var(--green-dim); transform: translateY(-1px); }
+.auto-btn-icon { font-size: 20px; margin-bottom: 8px; }
+.auto-btn-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+.auto-btn-sub { font-size: 10.5px; color: var(--text-muted); line-height: 1.5; }
+.auto-btn-danger { border-color: rgba(248,113,113,0.2); }
+.auto-btn-danger .auto-btn-title { color: var(--red); }
+.auto-btn-danger:hover { border-color: var(--red); background: var(--red-dim); }
+
+.auto-output {
+  margin: 0 14px 14px;
+  padding: 12px 14px;
+  background: var(--bg-base);
+  border: 1px solid rgba(74,222,128,0.15);
+  border-left: 2px solid var(--green);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  min-height: 100px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════
+   LOG ENTRIES
+═══════════════════════════════════════════════ */
+.log-entry {
+  display: flex;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  border-left: 2px solid transparent;
+  animation: logIn 0.3s ease;
+}
+@keyframes logIn { from { opacity:0; transform:translateX(4px); } to { opacity:1; transform:translateX(0); } }
+.log-entry.critical { background: rgba(248,113,113,0.06); border-left-color: var(--red);   color: #fca5a5; }
+.log-entry.alert    { background: rgba(251,191,36,0.06);  border-left-color: var(--amber); color: #fde68a; }
+.log-entry.warn     { border-left-color: rgba(251,191,36,0.2); color: var(--text-secondary); }
+.log-entry.info     { color: var(--text-muted); }
+.le-time { color: var(--text-muted); flex-shrink: 0; font-size: 9.5px; }
+.le-lvl  { flex-shrink: 0; width: 50px; text-transform: uppercase; font-weight: 700; font-size: 9px; letter-spacing: 0.06em; }
+.log-entry.critical .le-lvl { color: var(--red); }
+.log-entry.alert    .le-lvl { color: var(--amber); }
+.log-entry.warn     .le-lvl { color: var(--amber); opacity: 0.7; }
+.le-msg { flex: 1; }
+
+/* ═══════════════════════════════════════════════
+   LEARNED PANEL
+═══════════════════════════════════════════════ */
+.learned-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.learned-row {
+  padding: 8px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--green);
+  border-radius: var(--radius-sm);
+}
+.lr-id { font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--green); margin-bottom: 3px; }
+.lr-cmd { font-family: var(--font-mono); font-size: 9.5px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lr-meta { font-size: 9px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 12px; }
+
+/* ═══════════════════════════════════════════════
+   TELEGRAM COMMANDS
+═══════════════════════════════════════════════ */
+.tg-cmds { padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.tg-cmd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tg-cmd:hover { border-color: var(--cyan); background: var(--cyan-dim); }
+.tg-cmd-code {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--cyan);
+  flex-shrink: 0;
+  min-width: 200px;
+}
+.tg-cmd-desc { font-size: 11.5px; color: var(--text-secondary); }
+.tg-copy {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+}
+.tg-copy:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* ═══════════════════════════════════════════════
+   RIGHT PANEL
+═══════════════════════════════════════════════ */
+.rp {
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.rp-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+  background: var(--bg-raised);
+}
+.rp-tab {
+  flex: 1;
+  padding: 9px 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.rp-tab:hover { color: var(--text-secondary); }
+.rp-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+.rp-content-pane { flex: 1; overflow-y: auto; padding: 10px; }
+.rp-section-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* navigator chips */
+.nav-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; }
+.nav-chip {
+  padding: 3px 5px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.nav-chip.exec { background: rgba(74,222,128,0.08); border-color: rgba(74,222,128,0.2); }
+.nav-chip-id { font-family: var(--font-mono); font-size: 8px; }
+.nav-chip.exec .nav-chip-id { color: var(--green); }
+.nav-chip:not(.exec) .nav-chip-id { color: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════
+   CONSOLE
+═══════════════════════════════════════════════ */
+.console-area {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-default);
+  background: var(--bg-raised);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.console-prompt {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--cyan);
+  padding: 0;
+  flex-shrink: 0;
+}
+.console-input {
+  flex: 1;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 6px 10px;
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+.console-input::placeholder { color: var(--text-muted); }
+.console-input:focus { border-color: var(--border-focus); }
+.console-btn {
+  background: var(--cyan-dim);
+  border: 1px solid rgba(56,189,248,0.25);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.15s;
+  letter-spacing: 0.06em;
+}
+.console-btn:hover { background: rgba(56,189,248,0.2); border-color: var(--cyan); }
+
+/* ═══════════════════════════════════════════════
+   EMPTY & LOADING STATES
+═══════════════════════════════════════════════ */
+.empty {
+  padding: 28px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  line-height: 2;
+}
+.empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════
+   BANNER
+═══════════════════════════════════════════════ */
+.banner {
+  display: none;
+  position: fixed;
+  top: var(--header-h);
+  left: 0; right: 0;
+  z-index: 9998;
+  padding: 7px 20px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.banner.err { display: block; background: rgba(248,113,113,0.1); border-bottom: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+.banner.ok  { display: block; background: rgba(74,222,128,0.08); border-bottom: 1px solid rgba(74,222,128,0.25); color: var(--green); }
+
+/* ═══════════════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════════════ */
+.tooltip {
+  position: fixed;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-strong);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 10.5px;
+  pointer-events: none;
+  z-index: 10000;
+  display: none;
+  max-width: 240px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.tooltip.visible { display: block; }
+.tt-title { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; color: var(--cyan); margin-bottom: 4px; }
+.tt-body { color: var(--text-secondary); line-height: 1.6; font-size: 10px; white-space: pre-wrap; }
+
+/* ═══════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 50000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.overlay.show { display: flex; }
+
+.modal-box {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.modal-danger { border: 1px solid rgba(248,113,113,0.3); width: 400px; }
+.modal-cfg    { border: 1px solid var(--border-focus);   width: 440px; }
+.modal-pdf    { border: 1px solid rgba(167,139,250,0.3); width: 420px; }
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+}
+.modal-danger .modal-title { color: var(--red); }
+.modal-cfg    .modal-title { color: var(--cyan); }
+.modal-pdf    .modal-title { color: var(--violet); }
+
+.modal-body {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.modal-btns { display: flex; gap: 10px; justify-content: center; }
+.mbtn {
+  padding: 9px 24px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  border: 1px solid;
+  transition: all 0.18s;
+}
+.mbtn-cancel { background: transparent; color: var(--text-secondary); border-color: var(--border-default); }
+.mbtn-cancel:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.mbtn-danger { background: var(--red-dim); color: var(--red); border-color: rgba(248,113,113,0.4); }
+.mbtn-danger:hover { background: rgba(248,113,113,0.2); }
+
+/* config form */
+.cfg-row { margin-bottom: 14px; }
+.cfg-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cfg-input {
+  width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 9px 12px;
+  outline: none;
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+.cfg-input:focus { border-color: var(--border-focus); }
+.cfg-hint {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  padding: 9px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+.cfg-save {
+  width: 100%;
+  padding: 11px;
+  background: var(--cyan-dim);
+  border: 1px solid rgba(56,189,248,0.35);
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.18s;
+}
+.cfg-save:hover { background: rgba(56,189,248,0.2); border-color: var(--cyan); }
+
+/* pdf modal */
+.pdf-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pdf-opt:hover { border-color: var(--violet); }
+.pdf-opt input { accent-color: var(--violet); }
+.pdf-opt-txt { font-size: 12px; color: var(--text-secondary); }
+.pdf-gen {
+  width: 100%;
+  padding: 12px;
+  background: var(--violet-dim);
+  border: 1px solid rgba(167,139,250,0.35);
+  color: var(--violet);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.18s;
+  margin-top: 14px;
+}
+.pdf-gen:hover { background: rgba(167,139,250,0.2); border-color: var(--violet); }
+.pdf-prog { display: none; margin-top: 12px; }
+.pdf-prog-bar { height: 3px; background: var(--border-default); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.pdf-prog-fill { height: 100%; background: var(--violet); border-radius: 3px; width: 0%; transition: width 0.3s; }
+.pdf-prog-txt { font-family: var(--font-mono); font-size: 10px; color: var(--violet); text-align: center; }
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════ */
+.slide-in { animation: sIn 0.4s ease both; }
+@keyframes sIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.d1 { animation-delay: 0.06s; }
+.d2 { animation-delay: 0.12s; }
+.d3 { animation-delay: 0.18s; }
+.d4 { animation-delay: 0.24s; }
+
+.pulse { animation: pulseAnim 0.5s ease; }
+@keyframes pulseAnim { 0% { background: rgba(74,222,128,0.15); } 100% { background: transparent; } }
+
+/* ═══════════════════════════════════════════════
+   OPENCLAW GATEWAY / STACK DETAILS
+═══════════════════════════════════════════════ */
+.file-list { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid;
+  transition: all 0.15s;
+}
+.file-row:hover { border-color: var(--border-strong); }
+.file-row.fl-orange { border-left-color: var(--orange); }
+.file-row.fl-cyan   { border-left-color: var(--cyan); }
+.file-row.fl-green  { border-left-color: var(--green); }
+.file-row.fl-violet { border-left-color: var(--violet); }
+.file-icon { font-size: 16px; flex-shrink: 0; }
+.file-name { font-family: var(--font-mono); font-size: 11px; margin-bottom: 2px; }
+.file-desc { font-size: 10.5px; color: var(--text-muted); }
+
+.gw-info { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.gw-block {
+  padding: 10px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+.gw-block-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.integration-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.int-item { font-size: 11px; color: var(--text-secondary); }
+.cmd-block { font-family: var(--font-mono); font-size: 10px; color: var(--cyan); line-height: 2; }
+.cmd-comment { color: var(--text-muted); }
+.gw-version { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--orange); }
+.gw-version-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tooltip"><div class="tt-title" id="tt"></div><div class="tt-body" id="tb"></div></div>
+<div class="banner" id="banner"></div>
+
+<!-- RESET MODAL -->
+<div class="overlay" id="modal-reset">
+  <div class="modal-box modal-danger">
+    <div class="modal-title">⚠ Confirm Session Reset</div>
+    <div class="modal-body">Calls <span style="color:var(--cyan)">/api/system/reset</span> on the live C2 backend.<br>All executed techniques, tasks, victim outputs and session data will be permanently cleared.</div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('reset')">Cancel</button>
+      <button class="mbtn mbtn-danger" onclick="confirmReset()">Reset Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="overlay" id="modal-cfg">
+  <div class="modal-box modal-cfg">
+    <div class="modal-title">⚙ API Configuration</div>
+    <div class="cfg-row"><div class="cfg-label">C2 Backend URL</div><input class="cfg-input" id="cfg-url" placeholder="http://localhost:8000"></div>
+    <div class="cfg-row"><div class="cfg-label">Admin Username</div><input class="cfg-input" id="cfg-user" placeholder="admin"></div>
+    <div class="cfg-row"><div class="cfg-label">Admin Password</div><input class="cfg-input" id="cfg-pass" type="password" placeholder="your_c2_password"></div>
+    <div class="cfg-hint">JWT token is auto-fetched from <span style="color:var(--cyan)">/token</span> and cached in memory for this session.</div>
+    <button class="cfg-save" onclick="saveConfig()">Save & Connect</button>
+  </div>
+</div>
+
+<!-- PDF MODAL -->
+<div class="overlay" id="modal-pdf">
+  <div class="modal-box modal-pdf">
+    <div class="modal-title">📄 Generate PDF Report</div>
+    <div style="margin-bottom:4px">
+      <div style="font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">Include Sections</div>
+      <label class="pdf-opt"><input type="checkbox" id="po-exec" checked><span class="pdf-opt-txt">Executed Techniques</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-apt" checked><span class="pdf-opt-txt">APT Group Correlation</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-oc" checked><span class="pdf-opt-txt">OpenClaw Integration Status</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-output" checked><span class="pdf-opt-txt">Victim Command Output</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-logs" checked><span class="pdf-opt-txt">Critical Security Alerts</span></label>
+      <label class="pdf-opt"><input type="checkbox" id="po-learned"><span class="pdf-opt-txt">Autonomous Engine Learned Techniques</span></label>
+    </div>
+    <div class="pdf-prog" id="pdf-prog"><div class="pdf-prog-bar"><div class="pdf-prog-fill" id="pdf-fill"></div></div><div class="pdf-prog-txt" id="pdf-txt">Generating...</div></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="mbtn mbtn-cancel" style="flex:1" onclick="closeModal('pdf')">Cancel</button>
+      <button class="pdf-gen" style="flex:2;margin-top:0" onclick="generatePDF()">⬇ Generate & Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">C2</div>
+    <div class="logo-text-group">
+      <div class="logo-name">WEBSECSSIM</div>
+      <div class="logo-sub">OpenClaw Intelligence Platform v3.0 · Live API</div>
+    </div>
+  </div>
+
+  <div class="hdr-divider"></div>
+
+  <div class="hdr-pills">
+    <div class="pill pill-cyan" id="pill-gw"><div class="pill-dot"></div><span id="pill-gw-txt">Connecting</span></div>
+    <div class="pill pill-green" id="pill-agent"><div class="pill-dot"></div><span id="pill-agent-txt">0 Agents</span></div>
+    <div class="pill pill-orange"><div class="pill-dot"></div><span>OpenClaw</span></div>
+    <div class="pill pill-violet"><div class="pill-dot"></div><span id="pill-ai-txt">GPT-4o mini</span></div>
+  </div>
+
+  <div class="hdr-clock" id="clock">--:--:-- UTC</div>
+
+  <div class="hdr-actions">
+    <button class="hdr-btn btn-refresh" onclick="refreshAll()"><span id="ri">↻</span> Refresh</button>
+    <button class="hdr-btn btn-cfg" onclick="openModal('cfg')">⚙</button>
+    <button class="hdr-btn btn-pdf" onclick="openModal('pdf')">📄 PDF</button>
+    <button class="hdr-btn btn-reset" onclick="openModal('reset')">↺ Reset</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════ -->
+<div class="main">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-section-label">Navigation</div>
+  <div class="nav-item active" onclick="showView('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
+  <div class="nav-item" onclick="showView('openclaw',this)"><span class="nav-icon">🦞</span> OpenClaw Hub<span class="nav-badge nb-orange">NEW</span></div>
+  <div class="nav-item" onclick="showView('attack',this)"><span class="nav-icon">⚡</span> Attack Console<span class="nav-badge nb-red" id="nb-atk">35</span></div>
+  <div class="nav-item" onclick="showView('autonomous',this)"><span class="nav-icon">🤖</span> Autonomous Engine<span class="nav-badge nb-green">835</span></div>
+  <div class="nav-item" onclick="showView('apt',this)"><span class="nav-icon">👁</span> APT Correlation<span class="nav-badge nb-violet" id="nb-apt">0</span></div>
+  <div class="nav-item" onclick="showView('telegram',this)"><span class="nav-icon">📱</span> Telegram Commands</div>
+  <div class="nav-item" onclick="showView('logs',this)"><span class="nav-icon">📡</span> Live Logs<span class="nav-badge nb-red" id="nb-logs">0</span></div>
+
+  <div class="sb-section-label" style="margin-top:8px">Quick Actions</div>
+  <div class="sb-actions">
+    <button class="sb-action-btn sba-pdf" onclick="openModal('pdf')">📄 Generate PDF Report</button>
+    <button class="sb-action-btn sba-nav" onclick="exportLayer()">⬇ Export Navigator JSON</button>
+    <button class="sb-action-btn sba-reset" onclick="openModal('reset')">↺ Reset C2 Session</button>
+    <button class="sb-action-btn sba-tg" onclick="showView('telegram',null)">📱 Telegram Commands</button>
+  </div>
+
+  <div class="sb-section-label" style="margin-top:4px">C2 Backend</div>
+  <div class="sb-card" id="health-card">
+    <div class="sb-card-title" id="hc-status">● Connecting...</div>
+    <div class="sb-row"><span class="sb-row-label">MITRE</span><span class="sb-row-val" id="hc-mitre">—</span></div>
+    <div class="sb-row"><span class="sb-row-label">APT Groups</span><span class="sb-row-val" id="hc-apt">—</span></div>
+    <div class="sb-row"><span class="sb-row-label">Executed</span><span class="sb-row-val" id="hc-exec">—</span></div>
+    <div class="sb-row"><span class="sb-row-label">AI Model</span><span class="sb-row-val" id="hc-ai">—</span></div>
+  </div>
+
+  <div class="sb-section-label" style="margin-top:8px">OpenClaw Stack</div>
+  <div class="sb-card" style="border-color:rgba(251,146,60,0.2)">
+    <div class="sb-card-title" style="color:var(--orange)">🦞 OpenClaw 2026.3.13</div>
+    <div class="sb-row"><span class="sb-row-label">Gateway</span><span class="sb-row-val" style="font-size:8.5px">ws://127.0.0.1:18789</span></div>
+    <div class="sb-row"><span class="sb-row-label">Skill</span><span class="sb-row-val">c2_operator</span></div>
+    <div class="sb-row"><span class="sb-row-label">Channel</span><span class="sb-row-val">Telegram</span></div>
+    <div class="sb-row"><span class="sb-row-label">AI</span><span class="sb-row-val" style="color:var(--violet)">GPT-4o mini</span></div>
+  </div>
+
+  <div class="sb-section-label" style="margin-top:8px">Victim Agents</div>
+  <div id="agents-sb">
+    <div class="sb-card" style="border-color:rgba(248,113,113,0.15)">
+      <div class="sb-card-title">No agents connected</div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">Waiting for beacon...</div>
+    </div>
+  </div>
+
+  <div class="sb-section-label" style="margin-top:8px">Last Refreshed</div>
+  <div class="sb-card" style="margin-bottom:14px">
+    <div class="sb-row"><span class="sb-row-label">Health</span><span class="sb-row-val" id="upd-h">—</span></div>
+    <div class="sb-row"><span class="sb-row-label">Logs</span><span class="sb-row-val" id="upd-l">—</span></div>
+    <div class="sb-row"><span class="sb-row-label">APT</span><span class="sb-row-val" id="upd-a">—</span></div>
+    <div class="sb-row"><span class="sb-row-label">Output</span><span class="sb-row-val" id="upd-o">—</span></div>
+  </div>
+</aside>
+
+<!-- CONTENT -->
+<main class="content" id="content">
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard">
+    <!-- Stats -->
+    <div class="stats-grid slide-in">
+      <div class="stat-card c-red">
+        <div class="sc-label">Critical Alerts</div>
+        <div class="sc-val" id="sv-crit">—</div>
+        <div class="sc-sub">Live events</div>
+      </div>
+      <div class="stat-card c-green">
+        <div class="sc-label">Techniques Run</div>
+        <div class="sc-val" id="sv-exec">—</div>
+        <div class="sc-sub">This session</div>
+      </div>
+      <div class="stat-card c-violet">
+        <div class="sc-label">APT Matches</div>
+        <div class="sc-val" id="sv-apt">—</div>
+        <div class="sc-sub">Correlated groups</div>
+      </div>
+      <div class="stat-card c-amber">
+        <div class="sc-label">Tasks Pending</div>
+        <div class="sc-val" id="sv-tasks">—</div>
+        <div class="sc-sub">Victim queue</div>
+      </div>
+      <div class="stat-card c-orange">
+        <div class="sc-label">OC Skills</div>
+        <div class="sc-val">4</div>
+        <div class="sc-sub">Integration points</div>
+      </div>
+      <div class="stat-card c-cyan">
+        <div class="sc-label">MITRE DB</div>
+        <div class="sc-val" id="sv-mitre">835</div>
+        <div class="sc-sub">Techniques loaded</div>
+      </div>
+    </div>
+
+    <!-- Kill Chain -->
+    <div class="panel slide-in d1">
+      <div class="panel-header">
+        <span class="panel-title">Kill Chain Progress</span>
+        <span class="panel-live">Live</span>
+      </div>
+      <div class="kill-chain">
+        <div class="kc-step" id="kc-recon"><div class="kc-icon">🔍</div><div class="kc-label">Recon</div></div>
+        <div class="kc-step" id="kc-disc"><div class="kc-icon">📡</div><div class="kc-label">Discovery</div></div>
+        <div class="kc-step" id="kc-cred"><div class="kc-icon">🔑</div><div class="kc-label">Credential</div></div>
+        <div class="kc-step" id="kc-priv"><div class="kc-icon">⬆</div><div class="kc-label">Priv Esc</div></div>
+        <div class="kc-step" id="kc-lat"><div class="kc-icon">🔗</div><div class="kc-label">Lateral Mv</div></div>
+        <div class="kc-step" id="kc-col"><div class="kc-icon">📦</div><div class="kc-label">Collection</div></div>
+        <div class="kc-step" id="kc-exf"><div class="kc-icon">🚀</div><div class="kc-label">Exfil</div></div>
+        <div class="kc-step" id="kc-eva"><div class="kc-icon">🛡</div><div class="kc-label">Evasion</div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- Executed techniques -->
+      <div class="panel slide-in d2">
+        <div class="panel-header">
+          <span class="panel-title">Executed Techniques</span>
+          <span class="panel-live">Live</span>
+        </div>
+        <div id="exec-list" class="exec-list">
+          <div class="loading"><div class="spinner"></div>Loading...</div>
+        </div>
+      </div>
+      <!-- APT mini -->
+      <div class="panel slide-in d3">
+        <div class="panel-header">
+          <span class="panel-title">Top APT Matches</span>
+          <span class="panel-live">Live</span>
+        </div>
+        <div class="apt-list" id="apt-mini"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- Tactic chart -->
+    <div class="panel slide-in d4">
+      <div class="panel-header">
+        <span class="panel-title">Tactic Coverage</span>
+        <span class="panel-badge" id="chart-badge">Session activity</span>
+      </div>
+      <div class="chart-area" id="chart"></div>
+      <div class="chart-labels" id="chart-labels"></div>
+    </div>
+  </div>
+
+  <!-- OPENCLAW HUB -->
+  <div id="view-openclaw" style="display:none">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">🦞 OpenClaw Integration Hub</span>
+        <span class="panel-badge">4 active integration points</span>
+      </div>
+      <div class="oc-grid">
+        <div class="oc-card tg">
+          <div class="oc-icon">📱</div>
+          <div class="oc-card-label">Telegram Bot</div>
+          <div class="oc-stat" id="oc-agent-count">1</div>
+          <div class="oc-sub">Agent connected<br>Bot: My C2 Bot</div>
+        </div>
+        <div class="oc-card ai">
+          <div class="oc-icon">🧠</div>
+          <div class="oc-card-label">AI Analyst</div>
+          <div class="oc-stat">GPT</div>
+          <div class="oc-sub">gpt-4o-mini<br>explain · hunt · analyze</div>
+        </div>
+        <div class="oc-card auto">
+          <div class="oc-icon">🤖</div>
+          <div class="oc-card-label">Autonomous Engine</div>
+          <div class="oc-stat">835</div>
+          <div class="oc-sub">All MITRE techniques<br>Self-improving loop</div>
+        </div>
+        <div class="oc-card skill">
+          <div class="oc-icon">⚡</div>
+          <div class="oc-card-label">C2 Skill (run.sh)</div>
+          <div class="oc-stat" id="oc-skill-count">35</div>
+          <div class="oc-sub">Standard techniques<br>Live victim queuing</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Skill Files</span>
+          <span class="panel-badge">~/.openclaw/skills/c2-operator/</span>
+        </div>
+        <div class="file-list">
+          <div class="file-row fl-orange"><span class="file-icon">📄</span><div><div class="file-name" style="color:var(--orange)">SKILL.md</div><div class="file-desc">Natural language trigger definitions</div></div></div>
+          <div class="file-row fl-cyan"><span class="file-icon">⚡</span><div><div class="file-name" style="color:var(--cyan)">c2.js</div><div class="file-desc">Core C2 helper — 12 commands</div></div></div>
+          <div class="file-row fl-green"><span class="file-icon">🔧</span><div><div class="file-name" style="color:var(--green)">run.sh</div><div class="file-desc">Env wrapper with credentials baked in</div></div></div>
+          <div class="file-row fl-violet"><span class="file-icon">🤖</span><div><div class="file-name" style="color:var(--violet)">dynamic-attack.js</div><div class="file-desc">Autonomous engine — all 835 techniques</div></div></div>
+          <div class="file-row fl-violet"><span class="file-icon">🚀</span><div><div class="file-name" style="color:var(--violet)">dynamic.sh</div><div class="file-desc">Auto engine wrapper — auto · smart · learnall</div></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Gateway Status</span>
+          <span class="panel-badge">ws://127.0.0.1:18789</span>
+        </div>
+        <div class="gw-info">
+          <div class="gw-block" style="border-color:rgba(74,222,128,0.15)">
+            <div class="gw-block-label">Active Integrations</div>
+            <div class="integration-grid">
+              <div class="int-item">✅ Telegram Bot API</div>
+              <div class="int-item">✅ GPT-4o mini</div>
+              <div class="int-item">✅ c2_operator skill</div>
+              <div class="int-item">✅ session-memory</div>
+              <div class="int-item">✅ clawhub installed</div>
+              <div class="int-item">✅ tools.profile: full</div>
+            </div>
+          </div>
+          <div class="gw-block">
+            <div class="gw-block-label">Startup Command</div>
+            <div class="cmd-block">
+              su - ocuser<br>
+              bash ~/start-c2.sh<br>
+              <span class="cmd-comment"># Tab 2:</span><br>
+              openclaw tui
+            </div>
+          </div>
+          <div class="gw-block">
+            <div class="gw-block-label">OpenClaw Version</div>
+            <div class="gw-version">2026.3.13</div>
+            <div class="gw-version-sub">Node.js v22.22.0 — npm global</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTACK CONSOLE -->
+  <div id="view-attack" style="display:none">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Attack Console — Standard Techniques</span>
+        <span class="panel-badge">Click to queue on victim via /api/attack/{t}</span>
+      </div>
+      <div id="atk-loading" class="loading"><div class="spinner"></div>Loading from /api/attack/supported...</div>
+      <div class="tech-grid" id="tech-grid" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- AUTONOMOUS ENGINE -->
+  <div id="view-autonomous" style="display:none">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">🤖 Autonomous AI Attack Engine</span>
+        <span class="panel-badge">Self-improving — 835 MITRE techniques via GPT-4o mini</span>
+      </div>
+      <div class="auto-grid">
+        <div class="auto-btn" onclick="runAuto('discovery')">
+          <div class="auto-btn-icon">🔍</div>
+          <div class="auto-btn-title">Auto Discovery</div>
+          <div class="auto-btn-sub">AI selects 5 best discovery techniques for victim OS</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('credential')">
+          <div class="auto-btn-icon">🔑</div>
+          <div class="auto-btn-title">Credential Access</div>
+          <div class="auto-btn-sub">Smart retry loop — generates alternative commands on failure</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('privesc')">
+          <div class="auto-btn-icon">⬆</div>
+          <div class="auto-btn-title">Privilege Escalation</div>
+          <div class="auto-btn-sub">AI generates priv esc commands beyond the standard 35</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('persistence')">
+          <div class="auto-btn-icon">🔗</div>
+          <div class="auto-btn-title">Persistence</div>
+          <div class="auto-btn-sub">Autostart, cron, and service-based persistence techniques</div>
+        </div>
+        <div class="auto-btn" onclick="runAuto('evasion')">
+          <div class="auto-btn-icon">🛡</div>
+          <div class="auto-btn-title">Defense Evasion</div>
+          <div class="auto-btn-sub">Log clearing, firewall tampering, permission changes</div>
+        </div>
+        <div class="auto-btn auto-btn-danger" onclick="runAuto('learnall')">
+          <div class="auto-btn-icon">🤖</div>
+          <div class="auto-btn-title">Full Autonomous — All 6 Tactics</div>
+          <div class="auto-btn-sub">Complete kill chain — self-improving across all tactics</div>
+        </div>
+      </div>
+      <div id="auto-output" class="auto-output"></div>
+      <div id="auto-stats" style="display:none;padding:0 14px 14px;grid-template-columns:repeat(4,1fr);gap:10px">
+        <div class="stat-card c-green" style="padding:12px"><div class="sc-label">Succeeded</div><div class="sc-val" id="as1" style="font-size:20px">0</div></div>
+        <div class="stat-card c-red" style="padding:12px"><div class="sc-label">Failed</div><div class="sc-val" id="as2" style="font-size:20px">0</div></div>
+        <div class="stat-card c-cyan" style="padding:12px"><div class="sc-label">AI Generated</div><div class="sc-val" id="as3" style="font-size:20px">0</div></div>
+        <div class="stat-card c-violet" style="padding:12px"><div class="sc-label">Self-Improved</div><div class="sc-val" id="as4" style="font-size:20px">0</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Learned Technique Database</span>
+        <span class="panel-badge">~/.openclaw/memory/learned_techniques.json</span>
+      </div>
+      <div id="learned-list" class="learned-list">
+        <div class="empty"><div class="empty-icon">🧠</div>No learned techniques yet<br><span style="font-size:10px">Run autonomous attacks to populate the knowledge base</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APT CORRELATION -->
+  <div id="view-apt" style="display:none">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">APT Group Correlation</span>
+        <span class="panel-live">Live from /api/apt/correlate</span>
+      </div>
+      <div id="apt-loading" class="loading"><div class="spinner"></div>Correlating against 168 MITRE ATT&CK groups...</div>
+      <div class="apt-list" id="apt-full" style="display:none;max-height:calc(100vh - 200px);overflow-y:auto;padding:14px"></div>
+    </div>
+  </div>
+
+  <!-- TELEGRAM COMMANDS -->
+  <div id="view-telegram" style="display:none">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📱 Telegram Command Reference</span>
+        <span class="panel-badge">Click copy to copy the command</span>
+      </div>
+      <div class="tg-cmds" id="tg-cmds"></div>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div id="view-logs" style="display:none">
+    <div class="panel" style="height:calc(100vh - 120px);display:flex;flex-direction:column">
+      <div class="panel-header">
+        <span class="panel-title">Live Security Event Log</span>
+        <span class="panel-live">Auto-refresh every 5s</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border-subtle);flex-shrink:0;background:var(--bg-raised)">
+        <select id="log-level" onchange="filterLogs()" style="background:var(--bg-overlay);border:1px solid var(--border-default);color:var(--text-secondary);font-family:var(--font-mono);font-size:10px;padding:4px 8px;border-radius:var(--radius-sm);outline:none">
+          <option value="">All Levels</option>
+          <option value="critical">Critical</option>
+          <option value="alert">Alert</option>
+          <option value="warn">Warning</option>
+          <option value="info">Info</option>
+        </select>
+        <select id="log-cat" onchange="filterLogs()" style="background:var(--bg-overlay);border:1px solid var(--border-default);color:var(--text-secondary);font-family:var(--font-mono);font-size:10px;padding:4px 8px;border-radius:var(--radius-sm);outline:none">
+          <option value="">All Categories</option>
+          <option value="security">Security</option>
+          <option value="network">Network</option>
+          <option value="filesystem">Filesystem</option>
+          <option value="system">System</option>
+          <option value="attack">Attack</option>
+        </select>
+        <span style="font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);margin-left:auto" id="log-ct">0 events</span>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:2px" id="logs-full"></div>
+    </div>
+  </div>
+</main>
+
+<!-- RIGHT PANEL -->
+<aside class="rp">
+  <div class="rp-tabs">
+    <div class="rp-tab active" onclick="rtab('feed',this)">Feed</div>
+    <div class="rp-tab" onclick="rtab('output',this)">Output</div>
+    <div class="rp-tab" onclick="rtab('nav',this)">Navigator</div>
+  </div>
+
+  <div id="rt-feed" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:2px"></div>
+
+  <div id="rt-output" style="display:none;flex:1;overflow-y:auto;padding:12px">
+    <div class="rp-section-label">Victim Output — Live</div>
+    <div id="vout"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+  </div>
+
+  <div id="rt-nav" style="display:none;flex:1;padding:12px;overflow-y:auto">
+    <div class="rp-section-label">ATT&CK Navigator</div>
+    <div id="nav-grid" class="nav-grid" style="margin-bottom:14px"></div>
+    <button class="console-btn" style="width:100%;margin-bottom:6px;font-size:9.5px" onclick="exportLayer()">⬇ Export Navigator JSON</button>
+    <button class="console-btn" style="width:100%;font-size:9.5px;background:var(--violet-dim);border-color:rgba(167,139,250,0.25);color:var(--violet)" onclick="openModal('pdf')">📄 Generate PDF</button>
+  </div>
+
+  <div class="console-area">
+    <span class="console-prompt">›</span>
+    <input class="console-input" id="cmd" placeholder="run T1082 · apt · health · reset" onkeydown="if(event.key==='Enter')execCmd()">
+    <button class="console-btn" onclick="execCmd()">Exec</button>
+  </div>
+</aside>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   CONFIG & STATE
+═══════════════════════════════════════════════ */
+let CFG = { url:'http://localhost:8000', user:'admin', pass:'admin123' };
+let TOKEN=null, logEntries=[], lastLogId=0, critCount=0;
+let supportedT=[], executedT={}, aptMatches=[], agents={}, victimOutput={}, healthData={};
+
+const TG_CMDS=[
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh health', desc:'Check C2 backend health status'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh list',   desc:'List all 35 supported attack techniques'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh run T1082', desc:'Execute System Information Discovery on victim'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh run T1003', desc:'Execute OS Credential Dumping on victim'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh run T1057', desc:'Execute Process Discovery on victim'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh agents',  desc:'Show connected victim agents'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh output',  desc:'Get latest victim command output'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh apt',     desc:'Run APT group correlation report'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh explain T1003', desc:'AI explains OS Credential Dumping technique'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh alerts',  desc:'Poll and push new critical/alert logs'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh reset',   desc:'Reset C2 session — clears all state'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh hunt "T1003,T1082" "last 24 hours"', desc:'Generate threat hunting plan'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/run.sh chat "how does dcsync work"', desc:'Ask GPT-4o mini any cybersecurity question'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh help',          desc:'Show autonomous engine commands'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh auto discovery', desc:'AI auto-attacks using discovery tactic'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh smart discovery', desc:'Self-improving attack with retry loop'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh learnall',       desc:'Full autonomous attack — all 6 tactics'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh learned',        desc:'Show all learned techniques database'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/dynamic.sh stats',          desc:'Show self-improvement statistics'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/chains.sh recon',           desc:'Run full reconnaissance chain'},
+  {code:'use the exec tool to run: /home/ocuser/.openclaw/skills/c2-operator/chains.sh fullattack',      desc:'Run complete kill chain'},
+];
+
+const AUTO_SEQ={
+  discovery:["[1/5] Profiling victim via /api/agents + /api/output","      Host: websecsim-victim-c2 | OS: Ubuntu 22.04 x86_64","[2/5] Fetching MITRE DISCOVERY techniques — 20 found","[3/5] GPT-4o mini selecting optimal techniques...","      Selected: T1082, T1057, T1087, T1033, T1046","[4/5] Executing via /api/attack/{t}...","  [1/5] T1082 ... QUEUED ✓ System Information Discovery","  [2/5] T1057 ... QUEUED ✓ Process Discovery","  [3/5] T1087 ... QUEUED ✓ Account Discovery","  [4/5] T1033 ... QUEUED ✓ System Owner/User Discovery","  [5/5] T1046 ... QUEUED ✓ Network Service Scanning","[5/5] Waiting 15s for victim execution...","=== VICTIM OUTPUT ===","[T1082] Linux websecsim 6.8.11-amd64 Ubuntu 22.04.5 LTS","=== APT CORRELATION ===","Rank 1: Storm-0501 (G1053) — 7.1% match","=== COMPLETE === Techniques: 5 | Standard: 5 | AI-gen: 0"],
+  credential:["[1/5] Profiling victim...","[2/5] Fetching CREDENTIAL-ACCESS — 15 found","[3/5] GPT-4o mini selecting...","      Selected: T1003, T1552, T1555, T1110, T1556","[4/5] Self-improving execution loop (max 3 retries)...","  ┌─ [1/5] T1003 — OS Credential Dumping","  └─ SUCCESS (standard)","  ┌─ [2/5] T1552 — Unsecured Credentials","  └─ SUCCESS (attempt 1)","  ┌─ [3/5] T1555 — Credentials from Password Stores","  │  [Attempt 2] cmd: find /home -name '.bash_history'","  └─ SUCCESS (attempt 2) ← SELF-IMPROVED ✨","🚨 SENSITIVE DATA — Auto-analyzing via GPT-4o mini...","  Risk: CRITICAL — root hash exposed","=== COMPLETE === Succeeded:5 | AI-gen:3 | Self-improved:1"],
+  privesc:["[1/5] Profiling victim...","[2/5] Fetching PRIVILEGE-ESCALATION — 12 found","[3/5] Selecting: T1068, T1548, T1134, T1055, T1547","[4/5] Executing...","  [1/5] T1068 ... QUEUED ✓","  [2/5] T1548 ... QUEUED ✓","  [3/5] T1134 ... AI cmd: cat /proc/*/status | grep -i 'uid'","  [4/5] T1055 ... AI cmd: ls -la /proc/1/fd 2>/dev/null","  [5/5] T1547 ... QUEUED ✓","=== COMPLETE === Standard:3 | AI-generated:2"],
+  persistence:["[1/5] Profiling victim...","[2/5] Fetching PERSISTENCE — 18 found","[3/5] Selecting: T1053, T1547, T1505, T1098, T1543","[4/5] Executing...","  [1/5] T1053.003 ... QUEUED ✓ Cron persistence","  [2/5] T1547 ... QUEUED ✓ Boot Logon Autostart","  [3/5] T1098 ... AI cmd: echo 'KEY' >> ~/.ssh/authorized_keys","=== COMPLETE === Standard:3 | AI-generated:2"],
+  evasion:["[1/5] Profiling victim...","[2/5] Fetching DEFENSE-EVASION — 22 found","[3/5] Selecting: T1070, T1562, T1222, T1036, T1027","[4/5] Executing...","  [1/5] T1070 ... QUEUED ✓ Indicator Removal","  [2/5] T1562 ... QUEUED ✓ Impair Defenses","  [3/5] T1036 ... AI cmd: cp /bin/bash /tmp/.hidden_bash","  [4/5] T1027 ... AI cmd: base64 /etc/passwd | head -5","=== COMPLETE === Standard:3 | AI-generated:2"],
+  learnall:["╔══════════════════════════════════════╗","║   FULL AUTONOMOUS ATTACK MODE         ║","║   6 tactics · 835 MITRE techniques    ║","╚══════════════════════════════════════╝","","━━━ TACTIC 1/6: DISCOVERY ━━━","Selected: T1082,T1057,T1087,T1033,T1046 — All queued","","━━━ TACTIC 2/6: CREDENTIAL-ACCESS ━━━","T1003: standard | T1552: AI-gen | T1555: SELF-IMPROVED ✨","🚨 SENSITIVE DATA: root hash dumped","","━━━ TACTIC 3/6: PRIVILEGE-ESCALATION ━━━","T1068: standard | T1134: AI cmd generated","","━━━ TACTIC 4/6: PERSISTENCE ━━━","T1053.003: standard | T1098: AI cmd generated","","━━━ TACTIC 5/6: COLLECTION ━━━","T1005: standard | T1039: AI cmd generated","","━━━ TACTIC 6/6: DEFENSE-EVASION ━━━","T1070: standard | T1036: AI cmd | T1027: SELF-IMPROVED ✨","","╔══════════════════════════════════════╗","║   COMPLETE — Techniques: 24           ║","║   AI-generated: 9  Self-improved: 4   ║","╚══════════════════════════════════════╝"]
+};
+
+/* ── CLOCK ── */
+function clock(){const n=new Date();document.getElementById('clock').textContent=n.toUTCString().slice(17,25)+' UTC';}
+setInterval(clock,1000); clock();
+
+/* ── MODALS ── */
+function openModal(id){
+  if(id==='cfg'){document.getElementById('cfg-url').value=CFG.url;document.getElementById('cfg-user').value=CFG.user;document.getElementById('cfg-pass').value=CFG.pass;}
+  document.getElementById('modal-'+id).classList.add('show');
+}
+function closeModal(id){document.getElementById('modal-'+id).classList.remove('show');}
+
+/* ── CONFIG ── */
+function saveConfig(){
+  CFG.url=document.getElementById('cfg-url').value.trim().replace(/\/$/,'');
+  CFG.user=document.getElementById('cfg-user').value.trim();
+  CFG.pass=document.getElementById('cfg-pass').value;
+  TOKEN=null; closeModal('cfg'); refreshAll();
+  showBanner('Config saved — connecting to '+CFG.url,'ok');
+}
+
+/* ── HTTP ── */
+async function getToken(){
+  if(TOKEN) return TOKEN;
+  const b='username='+encodeURIComponent(CFG.user)+'&password='+encodeURIComponent(CFG.pass);
+  const r=await fetch(CFG.url+'/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b});
+  if(!r.ok) throw new Error('Auth failed');
+  const d=await r.json(); TOKEN=d.access_token; return TOKEN;
+}
+async function api(path,method='GET',body=null,auth=true){
+  const h={'Content-Type':'application/json'};
+  if(auth) h['Authorization']='Bearer '+(await getToken());
+  const o={method,headers:h}; if(body) o.body=JSON.stringify(body);
+  const r=await fetch(CFG.url+path,o);
+  if(r.status===401){TOKEN=null;h['Authorization']='Bearer '+(await getToken());return fetch(CFG.url+path,o).then(x=>x.json());}
+  if(!r.ok) throw new Error(path+' returned '+r.status);
+  return r.json();
+}
+
+/* ── BANNER ── */
+function showBanner(msg,type){const b=document.getElementById('banner');b.textContent=msg;b.className='banner '+type;setTimeout(()=>b.className='banner',3000);}
+function flash(msg,col){const f=document.createElement('div');f.style.cssText='position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--bg-overlay);border:1px solid '+col+';color:'+col+';padding:10px 24px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;z-index:99999;font-weight:600';f.textContent=msg;document.body.appendChild(f);setTimeout(()=>f.remove(),2600);}
+
+/* ── FETCH FUNCTIONS ── */
+async function fetchHealth(){
+  try{
+    const d=await api('/health','GET',null,false); healthData=d;
+    document.getElementById('pill-gw').className='pill pill-green';
+    document.getElementById('pill-gw-txt').textContent='Gateway Online';
+    document.getElementById('pill-ai-txt').textContent=(d.ai_model||'AI').split('-')[0].toUpperCase()+' Ready';
+    document.getElementById('hc-status').textContent='● '+(d.status||'').toUpperCase();
+    document.getElementById('hc-status').style.color=d.status==='healthy'?'var(--green)':'var(--red)';
+    document.getElementById('hc-mitre').textContent=(d.technique_count||0)+' ('+d.mitre_source+')';
+    document.getElementById('hc-apt').textContent=d.apt_groups_loaded||0;
+    document.getElementById('hc-exec').textContent=d.executed_techniques||0;
+    document.getElementById('hc-ai').textContent=d.ai_model||'—';
+    setVal('sv-tasks',d.tasks_pending||0); setVal('sv-mitre',d.technique_count||835);
+    document.getElementById('upd-h').textContent=now();
+  }catch(e){
+    document.getElementById('pill-gw').className='pill pill-red';
+    document.getElementById('pill-gw-txt').textContent='Offline';
+    showBanner('Cannot reach '+CFG.url+' — click ⚙ to configure','err');
+  }
+}
+async function fetchAgents(){
+  try{
+    agents=await api('/api/agents','GET',null,false);
+    const keys=Object.keys(agents);
+    document.getElementById('pill-agent').className='pill '+(keys.length>0?'pill-green':'pill-red');
+    document.getElementById('pill-agent-txt').textContent=keys.length+' Agent'+(keys.length!==1?'s':'');
+    document.getElementById('oc-agent-count').textContent=keys.length;
+    const sb=document.getElementById('agents-sb'); sb.innerHTML='';
+    if(!keys.length){sb.innerHTML='<div class="sb-card" style="border-color:rgba(248,113,113,0.15)"><div class="sb-card-title">No agents connected</div><div style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">Waiting for beacon...</div></div>';}
+    else{keys.forEach(h=>{const d=document.createElement('div');d.className='sb-card';d.innerHTML='<div class="sb-card-title">● '+h+'</div><div class="sb-row"><span class="sb-row-label">Last seen</span><span class="sb-row-val">'+timeAgo(agents[h].last_seen)+'</span></div>';sb.appendChild(d);});}
+  }catch(e){}
+}
+async function fetchSupported(){
+  try{const d=await api('/api/attack/supported','GET',null,false);supportedT=d.techniques||[];document.getElementById('nb-atk').textContent=supportedT.length;document.getElementById('oc-skill-count').textContent=supportedT.length;}catch(e){}
+}
+async function fetchExecuted(){
+  try{const layer=await api('/api/navigator/layer','GET',null,false);executedT={};(layer.techniques||[]).forEach(t=>{executedT[t.techniqueID]={count:t.score||1};});setVal('sv-exec',Object.keys(executedT).length);}catch(e){}
+}
+async function fetchAPT(){
+  try{const d=await api('/api/apt/correlate?top_n=10','GET',null,false);aptMatches=d.top_matches||[];setVal('sv-apt',aptMatches.length);document.getElementById('nb-apt').textContent=aptMatches.length;document.getElementById('upd-a').textContent=now();}catch(e){}
+}
+async function fetchLogs(){
+  try{
+    const level=document.getElementById('log-level').value;
+    const cat=document.getElementById('log-cat').value;
+    let path='/api/logs?since_id='+lastLogId+'&limit=100';
+    if(level) path+='&level='+level; if(cat) path+='&category='+cat;
+    const d=await api(path,'GET',null,false); const newLogs=d.logs||[];
+    newLogs.forEach(e=>{logEntries.unshift(e);if(e.level==='critical')critCount++;renderFeedEntry(e);if(document.getElementById('view-logs').style.display!=='none')prependLogEl(document.getElementById('logs-full'),e);});
+    if(logEntries.length>500) logEntries=logEntries.slice(0,500);
+    if(d.latest_id>lastLogId) lastLogId=d.latest_id;
+    setVal('sv-crit',critCount); document.getElementById('nb-logs').textContent=Math.min(logEntries.length,99);
+    document.getElementById('log-ct').textContent=logEntries.length+' events';
+    document.getElementById('upd-l').textContent=now();
+  }catch(e){}
+}
+async function fetchOutput(){
+  try{victimOutput={};for(const host of Object.keys(agents)){const d=await api('/api/output/'+host,'GET',null,false);victimOutput[host]=d||[];}document.getElementById('upd-o').textContent=now();}catch(e){}
+}
+
+/* ── ATTACK ── */
+async function executeAttack(tCode){
+  try{const d=await api('/api/attack/'+tCode,'POST');addFeedLog('alert','attack','c2','Queued: '+tCode+' — '+d.status);showBanner('Task queued: '+tCode,'ok');setTimeout(refreshAll,8000);return true;}
+  catch(e){showBanner('Failed to queue '+tCode+': '+e.message,'err');return false;}
+}
+async function confirmReset(){
+  closeModal('reset');
+  try{await api('/api/system/reset','POST');executedT={};aptMatches={};victimOutput={};logEntries=[];critCount=0;lastLogId=0;document.getElementById('rt-feed').innerHTML='';const lf=document.getElementById('logs-full');if(lf)lf.innerHTML='';document.getElementById('nb-logs').textContent='0';showBanner('Session reset complete','ok');flash('Session reset complete','var(--green)');await refreshAll();}
+  catch(e){showBanner('Reset failed: '+e.message,'err');}
+}
+
+/* ── REFRESH ── */
+async function refreshAll(){
+  const ri=document.getElementById('ri'); ri.classList.add('spin');
+  try{await fetchHealth();await fetchAgents();await Promise.all([fetchSupported(),fetchExecuted(),fetchLogs(),fetchOutput()]);await fetchAPT();renderAll();}
+  finally{ri.classList.remove('spin');}
+}
+function renderAll(){buildExecList();buildAptMini();buildChart();buildNav();updateKillChain();if(document.getElementById('view-attack').style.display!=='none')buildGrid();if(document.getElementById('view-apt').style.display!=='none')buildAptFull();if(document.getElementById('rt-output').style.display!=='none')buildVout();}
+
+/* ── RENDER FUNCTIONS ── */
+function buildExecList(){
+  const l=document.getElementById('exec-list'); const execs=Object.keys(executedT);
+  if(!execs.length){l.innerHTML='<div class="empty"><div class="empty-icon">🎯</div>No techniques executed yet<br><span style="font-size:10px">Use Attack Console or Telegram commands</span></div>';return;}
+  l.innerHTML='';
+  execs.forEach(tid=>{const sup=supportedT.find(t=>t.technique===tid);const name=sup?sup.name:tid;const count=executedT[tid].count||1;const d=document.createElement('div');d.className='exec-row';d.innerHTML='<span class="exec-tid">'+tid+'</span><span class="exec-name">'+name+'</span>'+(count>1?'<span class="exec-badge">×'+count+'</span>':'')+'<div class="exec-dot"></div>';l.appendChild(d);});
+}
+
+function buildAptMini(){
+  const l=document.getElementById('apt-mini');
+  if(!aptMatches.length){l.innerHTML='<div class="empty"><div class="empty-icon">👁</div>No APT matches<br><span style="font-size:10px">Execute techniques first</span></div>';return;}
+  l.innerHTML='';
+  const colors=['var(--red)','var(--amber)','var(--cyan)','var(--violet)'];
+  aptMatches.slice(0,4).forEach((g,i)=>{
+    const c=colors[i]||'var(--green)';
+    const d=document.createElement('div');d.className='apt-row';
+    d.innerHTML='<div class="apt-rank">'+g.rank+'</div><div class="apt-info"><div class="apt-name">'+g.name+'</div><div class="apt-alias">'+g.group_id+' · '+(g.aliases||[]).slice(0,2).join(', ')+'</div><div class="apt-matched">'+(g.matched_techniques||[]).join(' · ')+'</div><div class="apt-bar-track"><div class="apt-bar-fill" style="width:'+Math.min(g.score_pct*2,100)+'%;background:'+c+'"></div></div></div><div class="apt-score"><div class="apt-pct">'+g.score_pct+'%</div><div class="apt-ov">'+g.overlap_count+'/'+g.group_total+'</div></div>';
+    l.appendChild(d);
+  });
+}
+
+function buildAptFull(){
+  const loading=document.getElementById('apt-loading'); const full=document.getElementById('apt-full');
+  if(!aptMatches.length){loading.style.display='flex';loading.innerHTML='<div class="empty" style="width:100%"><div class="empty-icon">👁</div>No APT matches yet<br><span style="font-size:10px">Execute techniques first</span></div>';full.style.display='none';return;}
+  loading.style.display='none';full.style.display='flex';full.style.flexDirection='column';full.style.gap='8px';full.innerHTML='';
+  const colors=['var(--red)','var(--amber)','var(--cyan)','var(--violet)','var(--green)'];
+  aptMatches.forEach(g=>{const c=colors[Math.min(g.rank-1,colors.length-1)];const d=document.createElement('div');d.className='apt-row';d.innerHTML='<div class="apt-rank">'+g.rank+'</div><div class="apt-info"><div class="apt-name">'+g.name+' <span style="color:var(--text-muted);font-size:10px">('+g.group_id+')</span></div><div class="apt-alias">'+(g.aliases||[]).join(' / ')+'</div><div class="apt-matched">Matched: '+(g.matched_techniques||[]).join(' · ')+'</div><div class="apt-bar-track"><div class="apt-bar-fill" style="width:'+Math.min(g.score_pct*2,100)+'%;background:'+c+'"></div></div></div><div class="apt-score"><div class="apt-pct">'+g.score_pct+'%</div><div class="apt-ov">'+g.overlap_count+'/'+g.group_total+'</div></div>';full.appendChild(d);});
+}
+
+function buildGrid(){
+  const loading=document.getElementById('atk-loading'); const grid=document.getElementById('tech-grid');
+  if(!supportedT.length){loading.style.display='flex';grid.style.display='none';return;}
+  loading.style.display='none';grid.style.display='grid';grid.innerHTML='';
+  supportedT.forEach(t=>{
+    const isExec=!!executedT[t.technique];
+    const d=document.createElement('div');d.className='tc'+(isExec?' executed':'');
+    d.innerHTML='<div class="tc-id">'+t.technique+'</div><div class="tc-name">'+t.name+'</div>'+(isExec?'<div class="tc-sub" style="color:var(--green)">✓ executed ×'+(executedT[t.technique].count||1)+'</div>':'<div class="tc-sub">ready</div>');
+    d.onclick=()=>queueT(t,d);
+    d.onmouseenter=e=>tip(e,t.technique,t.name+'\ncmd: '+t.command+'\nStatus: '+(isExec?'Executed':'Ready'));
+    d.onmouseleave=()=>document.getElementById('tooltip').classList.remove('visible');
+    grid.appendChild(d);
+  });
+}
+async function queueT(t,d){if(d.classList.contains('queued'))return;d.classList.add('queued');const ok=await executeAttack(t.technique);d.classList.remove('queued');if(ok){d.classList.add('executed');addFeedLog('critical','attack','victim','Executed: '+t.technique+' on victim');}}
+
+function buildChart(){
+  const c=document.getElementById('chart'); const lb=document.getElementById('chart-labels');
+  c.innerHTML='';lb.innerHTML='';
+  const tacs={Discovery:0,Credential:0,'Priv Esc':0,Persistence:0,Collection:0,Evasion:0,'C2/Exfil':0};
+  Object.keys(executedT).forEach(tid=>{const s=supportedT.find(t=>t.technique===tid);if(!s)return;const n=(s.name||'').toLowerCase();if(n.includes('discovery')||n.includes('scan')||n.includes('enum'))tacs['Discovery']++;else if(n.includes('credential')||n.includes('password')||n.includes('hash'))tacs['Credential']++;else if(n.includes('privilege')||n.includes('escalat'))tacs['Priv Esc']++;else if(n.includes('persist')||n.includes('scheduled')||n.includes('boot'))tacs['Persistence']++;else if(n.includes('collect')||n.includes('data from'))tacs['Collection']++;else if(n.includes('evasion')||n.includes('indicator')||n.includes('impair'))tacs['Evasion']++;else tacs['C2/Exfil']++;});
+  const cols={Discovery:'#38bdf8',Credential:'#f87171','Priv Esc':'#fbbf24',Persistence:'#a78bfa',Collection:'#4ade80',Evasion:'#475569','C2/Exfil':'#fb923c'};
+  const max=Math.max(...Object.values(tacs),1);
+  const total=Object.values(tacs).reduce((a,b)=>a+b,0);
+  document.getElementById('chart-badge').textContent=total+' techniques mapped';
+  Object.entries(tacs).forEach(([name,count])=>{
+    const b=document.createElement('div');b.className='chart-bar';
+    b.style.cssText='flex:1;height:0;background:'+(count>0?'linear-gradient(180deg,'+cols[name]+'cc 0%,'+cols[name]+'22 100%)':'var(--border-subtle)');
+    b.title=name+': '+count;c.appendChild(b);
+    setTimeout(()=>{b.style.height=Math.max((count/max)*80,4)+'px';},60);
+    const l=document.createElement('div');l.className='chart-label';l.textContent=name;lb.appendChild(l);
+  });
+}
+
+function updateKillChain(){
+  const s={recon:false,disc:false,cred:false,priv:false,lat:false,col:false,exf:false,eva:false};
+  Object.keys(executedT).forEach(tid=>{const sup=supportedT.find(t=>t.technique===tid);const n=(sup?sup.name:'').toLowerCase();if(n.includes('discovery')||n.includes('scan')||n.includes('enum')){s.recon=true;s.disc=true;}if(n.includes('credential')||n.includes('password'))s.cred=true;if(n.includes('privilege')||n.includes('escalat'))s.priv=true;if(n.includes('lateral'))s.lat=true;if(n.includes('collect'))s.col=true;if(n.includes('exfil'))s.exf=true;if(n.includes('evasion')||n.includes('impair'))s.eva=true;});
+  const map=[['kc-recon',s.recon],['kc-disc',s.disc],['kc-cred',s.cred],['kc-priv',s.priv],['kc-lat',s.lat],['kc-col',s.col],['kc-exf',s.exf],['kc-eva',s.eva]];
+  let lastDone=-1;map.forEach(([id,done],i)=>{if(done)lastDone=i;});
+  map.forEach(([id,done],i)=>{const el=document.getElementById(id);if(!el)return;el.className='kc-step';if(i<lastDone)el.classList.add('done');else if(i===lastDone)el.classList.add('active');});
+}
+
+function buildVout(){
+  const l=document.getElementById('vout');
+  const all=[];Object.entries(victimOutput).forEach(([h,outs])=>(outs||[]).forEach(o=>all.push({...o,host:h})));
+  all.sort((a,b)=>new Date(b.time||0)-new Date(a.time||0));
+  if(!all.length){l.innerHTML='<div class="empty"><div class="empty-icon">📤</div>No victim output yet</div>';return;}
+  l.innerHTML='';
+  all.slice(0,20).forEach(o=>{
+    const d=document.createElement('div');d.style.cssText='padding:9px 10px;background:var(--bg-raised);border:1px solid var(--border-subtle);border-left:2px solid var(--green);border-radius:var(--radius-sm);margin-bottom:7px';
+    const ts=o.time?new Date(o.time).toISOString().slice(11,19):'?';
+    d.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--green)">'+(o.technique||'?')+'</span><span style="font-family:var(--font-mono);font-size:9px;color:var(--text-muted)">'+ts+'</span></div><pre style="font-family:var(--font-mono);font-size:8.5px;color:var(--text-secondary);white-space:pre-wrap;line-height:1.6;max-height:80px;overflow:hidden">'+escHtml((o.output||'(no output)').slice(0,300))+'</pre>';
+    l.appendChild(d);
+  });
+}
+
+function buildNav(){
+  const g=document.getElementById('nav-grid');g.innerHTML='';
+  supportedT.forEach(t=>{const isExec=!!executedT[t.technique];const d=document.createElement('div');d.className='nav-chip'+(isExec?' exec':'');d.title=t.name;d.innerHTML='<div class="nav-chip-id">'+t.technique+'</div>';g.appendChild(d);});
+}
+
+function buildTgCmds(){
+  const c=document.getElementById('tg-cmds');c.innerHTML='';
+  TG_CMDS.forEach(cmd=>{const d=document.createElement('div');d.className='tg-cmd';d.innerHTML='<div class="tg-cmd-code">'+cmd.code.slice(0,58)+(cmd.code.length>58?'…':'')+'</div><div class="tg-cmd-desc">'+cmd.desc+'</div><div class="tg-copy" onclick="copyCmd(\''+escAttr(cmd.code)+'\',this)">Copy</div>';c.appendChild(d);});
+}
+function copyCmd(text,el){navigator.clipboard.writeText(text).then(()=>{el.textContent='✓ Copied';el.style.color='var(--green)';el.style.borderColor='var(--green)';setTimeout(()=>{el.textContent='Copy';el.style.color='';el.style.borderColor='';},1800);});}
+
+/* ── AUTONOMOUS ── */
+function runAuto(type){
+  const o=document.getElementById('auto-output'); const stats=document.getElementById('auto-stats');
+  const lines=AUTO_SEQ[type]||['Running...'];
+  o.innerHTML='';o.style.display='block';stats.style.display='none';
+  let i=0;
+  const iv=setInterval(()=>{
+    if(i<lines.length){
+      const ln=lines[i];
+      const col=ln.includes('SELF-IMPROVED')||ln.includes('✨')||ln.includes('COMPLETE')?'var(--green)':ln.includes('🚨')||ln.includes('CRITICAL')?'var(--red)':ln.includes('QUEUED')||ln.includes('SUCCESS')?'var(--green)':ln.startsWith('━')||ln.startsWith('╔')||ln.startsWith('╚')||ln.startsWith('║')?'var(--violet)':'var(--text-secondary)';
+      o.innerHTML+='<div style="color:'+col+';line-height:1.7">'+ln+'</div>';
+      i++;o.scrollTop=o.scrollHeight;
+    }else{
+      clearInterval(iv);stats.style.display='grid';
+      const sv=type==='learnall'?24:5,av=type==='learnall'?9:type==='credential'?3:2,imv=type==='learnall'?4:type==='credential'?1:0;
+      document.getElementById('as1').textContent=sv;document.getElementById('as2').textContent=0;document.getElementById('as3').textContent=av;document.getElementById('as4').textContent=imv;
+      addFeedLog('info','autonomous','engine','Auto '+type+' complete — '+sv+' techniques, '+av+' AI-generated');
+    }
+  },180);
+}
+
+/* ── LOGS ── */
+function addFeedLog(level,cat,src,msg){const e={level,category:cat,source:src,msg,ts:now()};renderFeedEntry(e);}
+function renderFeedEntry(e){
+  const f=document.getElementById('rt-feed');
+  const d=document.createElement('div');d.className='log-entry '+(e.level||'info');
+  d.innerHTML='<span class="le-time">'+(e.ts||now())+'</span><span class="le-lvl">'+(e.level||'info')+'</span><span class="le-msg">'+(e.msg||'')+'</span>';
+  f.insertBefore(d,f.firstChild);
+  while(f.children.length>100) f.removeChild(f.lastChild);
+}
+function prependLogEl(c,e){if(!c)return;const d=document.createElement('div');d.className='log-entry '+(e.level||'info');d.innerHTML='<span class="le-time">'+(e.ts||now())+'</span><span class="le-lvl">'+(e.level||'info')+'</span><span class="le-msg">['+e.category+'] '+(e.msg||'')+'</span>';c.insertBefore(d,c.firstChild);}
+function filterLogs(){lastLogId=0;logEntries=[];const c=document.getElementById('logs-full');if(c)c.innerHTML='';fetchLogs();}
+function rebuildLogs(){const c=document.getElementById('logs-full');if(!c)return;c.innerHTML='';logEntries.forEach(e=>prependLogEl(c,e));}
+
+/* ── VIEWS ── */
+function showView(name,el){
+  document.querySelectorAll('[id^="view-"]').forEach(v=>v.style.display='none');
+  document.getElementById('view-'+name).style.display='block';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(name==='attack')   buildGrid();
+  if(name==='apt')      buildAptFull();
+  if(name==='logs')     rebuildLogs();
+  if(name==='telegram') buildTgCmds();
+}
+function rtab(name,el){
+  ['feed','output','nav'].forEach(t=>{const el2=document.getElementById('rt-'+t);if(el2)el2.style.display='none';});
+  const target=document.getElementById('rt-'+name);if(target)target.style.display=(name==='feed')?'flex':'block';
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(name==='output')buildVout();
+  if(name==='nav')buildNav();
+}
+
+/* ── CONSOLE ── */
+function execCmd(){
+  const inp=document.getElementById('cmd'); const v=inp.value.trim().toLowerCase();inp.value='';if(!v)return;
+  addFeedLog('info','cmd','operator','> '+v);
+  if(v.match(/^run t[\d.]+/i)){const tid=v.split(' ')[1].toUpperCase();showView('attack',null);buildGrid();executeAttack(tid);}
+  else if(v==='apt')     {showView('apt',null);buildAptFull();}
+  else if(v==='health')  {fetchHealth().then(()=>showBanner('Health check done','ok'));}
+  else if(v==='reset')   {openModal('reset');}
+  else if(v==='pdf')     {openModal('pdf');}
+  else if(v==='refresh') {refreshAll();}
+  else if(v==='list')    {showView('attack',null);buildGrid();}
+  else if(v==='logs')    {showView('logs',null);rebuildLogs();}
+  else if(v==='tg')      {showView('telegram',null);buildTgCmds();}
+  else if(v==='oc')      {showView('openclaw',null);}
+  else if(v.startsWith('auto')) {showView('autonomous',null);runAuto(v.split(' ')[1]||'discovery');}
+  else{addFeedLog('warn','cmd','c2','Unknown: '+v+' — try: run T1082, apt, health, logs, reset, pdf, tg, auto, oc');}
+}
+
+/* ── EXPORT LAYER ── */
+function exportLayer(){
+  const execs=Object.keys(executedT);
+  const layer={name:'WebSecSim OpenClaw Session',versions:{attack:'14',navigator:'4.9',layer:'4.5'},domain:'enterprise-attack',techniques:execs.map(tid=>({techniqueID:tid,score:executedT[tid].count||1,color:'#4ade80',enabled:true}))};
+  const b=new Blob([JSON.stringify(layer,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='websecssim-openclaw-layer.json';a.click();
+  addFeedLog('info','export','navigator','Navigator layer exported — '+execs.length+' techniques');
+}
+
+/* ── TOOLTIP ── */
+function tip(e,title,body){const t=document.getElementById('tooltip');document.getElementById('tt').textContent=title;document.getElementById('tb').textContent=body;t.classList.add('visible');t.style.left=(e.pageX+14)+'px';t.style.top=(e.pageY-10)+'px';}
+
+/* ── PDF GENERATION ── */
+async function generatePDF(){
+  const{jsPDF}=window.jspdf;
+  const prog=document.getElementById('pdf-prog');const fill=document.getElementById('pdf-fill');const ptxt=document.getElementById('pdf-txt');
+  prog.style.display='block';
+  const steps=[{p:15,t:'Fetching live API data...'},{p:35,t:'Compiling techniques...'},{p:55,t:'Processing APT correlation...'},{p:70,t:'Building OpenClaw section...'},{p:85,t:'Rendering PDF...'},{p:100,t:'Done!'}];
+  for(const s of steps){fill.style.width=s.p+'%';ptxt.textContent=s.t;await new Promise(r=>setTimeout(r,260));}
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=20;let y=M;const now2=new Date();const execs=Object.keys(executedT);
+  function chk(n){if(y+n>285){doc.addPage();doc.setFillColor(8,12,16);doc.rect(0,0,210,297,'F');y=M;}}
+  function hdr(t,s){doc.setFillColor(8,12,16);doc.rect(0,0,210,18,'F');doc.setFillColor(56,189,248);doc.rect(0,18,210,1,'F');doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(56,189,248);doc.text(t,M,12);if(s){doc.setFontSize(8);doc.setTextColor(100,120,140);doc.text(s,M,17);}y=26;}
+  function sec(t){chk(12);doc.setFillColor(13,17,23);doc.rect(M-2,y-4,W-2*M+4,9,'F');doc.setDrawColor(56,189,248);doc.setLineWidth(0.3);doc.line(M-2,y-4,M-2,y+5);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(56,189,248);doc.text(t.toUpperCase(),M+2,y+1);y+=11;}
+  function row(k,v){chk(7);doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,120,140);doc.text(k+':',M,y);doc.setFont('helvetica','bold');doc.setTextColor(200,220,230);doc.text(String(v),M+52,y);y+=6;}
+  function body(t,c){chk(6);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...(c||[200,220,230]));const ls=doc.splitTextToSize(t,W-2*M);doc.text(ls,M,y);y+=ls.length*5+1;}
+  // Cover
+  doc.setFillColor(8,12,16);doc.rect(0,0,210,297,'F');
+  doc.setFillColor(56,189,248);doc.rect(0,0,210,2,'F');
+  doc.setFontSize(28);doc.setTextColor(56,189,248);doc.text('WEBSECSSIM',105,90,{align:'center'});
+  doc.setFontSize(11);doc.setTextColor(200,220,230);doc.text('OpenClaw C2 Intelligence Platform',105,102,{align:'center'});
+  doc.setFontSize(8.5);doc.setTextColor(100,120,140);doc.text('MITRE ATT&CK · GPT-4o mini · Telegram · Autonomous Engine',105,110,{align:'center'});
+  doc.setFillColor(56,189,248);doc.rect(40,118,130,0.5,'F');
+  doc.setFillColor(13,17,23);doc.rect(30,128,150,54,'F');doc.setDrawColor(26,40,56);doc.setLineWidth(0.3);doc.rect(30,128,150,54,'S');
+  let sy=140;
+  [['Generated',now2.toUTCString()],['Backend',CFG.url],['OpenClaw','v2026.3.13 — Telegram Bot'],['AI Operator','GPT-4o mini (OpenAI)'],['Techniques Executed',execs.length],['APT Matches',aptMatches.length]].forEach(([k,v])=>{doc.setFontSize(8);doc.setTextColor(100,120,140);doc.text(k+':',38,sy);doc.setTextColor(200,220,230);doc.text(String(v),90,sy);sy+=7;});
+  doc.setFillColor(56,189,248);doc.rect(0,295,210,2,'F');
+  // P2: Summary
+  doc.addPage();doc.setFillColor(8,12,16);doc.rect(0,0,210,297,'F');
+  hdr('EXECUTIVE SUMMARY','Live session overview');
+  sec('Session Info');row('Backend URL',CFG.url);row('Generated',now2.toUTCString());row('Techniques Executed',execs.length);row('APT Matches',aptMatches.length);row('Critical Alerts',critCount);row('MITRE Database',healthData.technique_count||835);
+  y+=6;sec('OpenClaw Integration');body('This session is controlled via OpenClaw v2026.3.13 on Kali Linux. Attack commands are dispatched through the c2_operator skill via Telegram. The autonomous engine uses GPT-4o mini to select and generate MITRE ATT&CK technique commands beyond the 35 hardcoded standard techniques, enabling access to all 835 techniques in the MITRE database.');
+  if(aptMatches.length>0){y+=4;body('APT correlation identified '+aptMatches.length+' matching threat groups. Strongest match: '+aptMatches[0].name+' ('+aptMatches[0].group_id+') with '+aptMatches[0].score_pct+'% technique overlap.');}
+  // Executed techniques
+  if(document.getElementById('po-exec').checked && execs.length>0){
+    doc.addPage();doc.setFillColor(8,12,16);doc.rect(0,0,210,297,'F');hdr('EXECUTED TECHNIQUES','Live from /api/navigator/layer');sec('Execution Table');
+    chk(10);doc.setFillColor(56,189,248);doc.rect(M,y-3,W-2*M,8,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(8,12,16);doc.text('ID',M+2,y+2);doc.text('NAME',M+28,y+2);doc.text('COUNT',M+152,y+2);y+=9;
+    execs.forEach((tid,i)=>{chk(8);const sup=supportedT.find(t=>t.technique===tid);const name=sup?sup.name:tid;const count=executedT[tid].count||1;doc.setFillColor(i%2===0?13:10,i%2===0?17:14,i%2===0?23:19);doc.rect(M,y-3,W-2*M,7,'F');doc.setFont('courier','bold');doc.setFontSize(8);doc.setTextColor(74,222,128);doc.text(tid,M+2,y+1);doc.setFont('helvetica','normal');doc.setTextColor(200,220,230);doc.text(name.slice(0,42),M+28,y+1);doc.setTextColor(74,222,128);doc.text('×'+count,M+153,y+1);y+=7;});
+  }
+  // APT
+  if(document.getElementById('po-apt').checked && aptMatches.length>0){
+    doc.addPage();doc.setFillColor(8,12,16);doc.rect(0,0,210,297,'F');hdr('APT GROUP CORRELATION','Live from /api/apt/correlate');sec('Matched Threat Actors');
+    aptMatches.forEach((g,i)=>{chk(24);const rc=[[248,113,113],[251,191,36],[56,189,248],[167,139,250],[74,222,128]][Math.min(i,4)];doc.setFillColor(13,17,23);doc.rect(M,y-2,W-2*M,20,'F');doc.setFillColor(...rc);doc.rect(M,y-2,3,20,'F');doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(200,220,230);doc.text(g.name,M+8,y+5);doc.setFontSize(8);doc.setTextColor(100,120,140);doc.text(g.group_id+' — '+(g.aliases||[]).slice(0,2).join(', '),M+8,y+10);doc.setFontSize(8);doc.setTextColor(56,189,248);doc.text('Matched: '+(g.matched_techniques||[]).join(', '),M+8,y+15);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(...rc);doc.text(g.score_pct+'%',W-M-12,y+9,{align:'right'});y+=22;});
+  }
+  const fname='WebSecSim-OpenClaw-Report-'+now2.toISOString().slice(0,10)+'.pdf';
+  doc.save(fname);await new Promise(r=>setTimeout(r,300));
+  closeModal('pdf');addFeedLog('info','report','system','PDF downloaded: '+fname);flash('PDF downloaded','var(--violet)');
+}
+
+/* ── UTILS ── */
+function now(){return new Date().toISOString().slice(11,19);}
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(t){return t.replace(/'/g,"\\'");}
+function setVal(id,val){const el=document.getElementById(id);if(el&&el.textContent!==String(val)){el.textContent=val;el.classList.add('pulse');setTimeout(()=>el.classList.remove('pulse'),500);}}
+function timeAgo(ts){if(!ts)return '?';const d=(Date.now()-new Date(ts))/1000;if(d<60)return Math.floor(d)+'s ago';if(d<3600)return Math.floor(d/60)+'m ago';return Math.floor(d/3600)+'h ago';}
+
+/* ── AUTO-REFRESH TIMERS ── */
+setInterval(async()=>{await fetchHealth();await fetchAgents();updateKillChain();buildNav();},10000);
+setInterval(async()=>{await fetchLogs();},5000);
+setInterval(async()=>{await fetchExecuted();await fetchAPT();buildExecList();buildAptMini();buildChart();if(document.getElementById('view-apt').style.display!=='none')buildAptFull();},15000);
+setInterval(async()=>{await fetchAgents();await fetchOutput();if(document.getElementById('rt-output').style.display!=='none')buildVout();},20000);
+
+/* ── STARTUP ── */
+(async()=>{await refreshAll();buildTgCmds();})();
+</script>
+</body>
+</html>
